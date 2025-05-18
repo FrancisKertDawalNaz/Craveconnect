@@ -7,6 +7,19 @@ if (!isset($_SESSION['user_id'])) {
 }
 
 $userFullName = $_SESSION['fullname'];
+
+// Fetch active orders count for this user
+require_once '../auth/connection.php';
+$activeOrders = 0;
+$userId = $_SESSION['user_id'];
+$sql = "SELECT COUNT(*) as cnt FROM orders WHERE user_id = ? AND order_status IN ('Pending', 'Preparing')";
+if ($stmt = $conn->prepare($sql)) {
+    $stmt->bind_param('i', $userId);
+    $stmt->execute();
+    $stmt->bind_result($activeOrders);
+    $stmt->fetch();
+    $stmt->close();
+}
 ?>
 
 <!DOCTYPE html>
@@ -93,7 +106,7 @@ $userFullName = $_SESSION['fullname'];
                             </div>
                             <div class="ml-4">
                                 <h3 class="text-gray-500 text-sm">Active Orders</h3>
-                                <p class="text-2xl font-semibold">2</p>
+                                <p class="text-2xl font-semibold"><?php echo $activeOrders; ?></p>
                             </div>
                         </div>
                     </div>

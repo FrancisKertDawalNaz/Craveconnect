@@ -131,7 +131,6 @@ $userFullName = $_SESSION['fullname'];
     </div>
 
     <script>
-    // Modal logic
     const items = [
         {
             title: 'Classic Burger',
@@ -175,9 +174,29 @@ $userFullName = $_SESSION['fullname'];
     // Optional: Prevent form submit default
     modal.querySelector('form').onsubmit = function(e) {
         e.preventDefault();
-        // You can add AJAX here to process the order
-        closeModal();
-        alert('Order placed!');
+        // AJAX order insert
+        const itemName = modalTitle.textContent;
+        const qty = parseInt(modalQty.value);
+        const priceText = modalPrice.textContent.replace(/[^\d.]/g, '');
+        const price = parseFloat(priceText);
+        fetch('../auth/insert_order.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: `item_name=${encodeURIComponent(itemName)}&quantity=${qty}&price=${price}`
+        })
+        .then(res => res.json())
+        .then(data => {
+            closeModal();
+            if (data.success) {
+                alert('Order placed!');
+            } else {
+                alert('Order failed: ' + data.message);
+            }
+        })
+        .catch(() => {
+            closeModal();
+            alert('Order failed: Network error');
+        });
     };
     </script>
 </body>
