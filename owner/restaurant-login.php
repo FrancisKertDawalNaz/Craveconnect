@@ -1,3 +1,34 @@
+<?php
+include './auth/connection.php';
+session_start();
+
+if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    $email = mysqli_real_escape_string($conn, $_POST['email']);
+    $password = $_POST['password'];
+
+    $query = "SELECT * FROM restaurant_owners WHERE email='$email'";
+    $result = mysqli_query($conn, $query);
+
+    if ($result && mysqli_num_rows($result) == 1) {
+        $row = mysqli_fetch_assoc($result);
+        if (password_verify($password, $row['password'])) {
+            // Set session variables if needed
+            $_SESSION['owner_id'] = $row['id'];
+            $_SESSION['owner_name'] = $row['fullname'];
+            header("Location: restaurant-dashboard.php");
+            exit();
+        } else {
+            echo "<script src='https://cdn.jsdelivr.net/npm/sweetalert2@11'></script>";
+            echo "<script>Swal.fire({icon: 'error', title: 'Login Failed', text: 'Incorrect password.'}).then(() => { history.back(); });</script>";
+            exit();
+        }
+    } else {
+        echo "<script src='https://cdn.jsdelivr.net/npm/sweetalert2@11'></script>";
+        echo "<script>Swal.fire({icon: 'error', title: 'Login Failed', text: 'Email not found.'}).then(() => { history.back(); });</script>";
+        exit();
+    }
+}
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -46,17 +77,17 @@
                 <div class="bg-white rounded-lg shadow-lg p-8">
                     <h2 class="text-2xl font-semibold text-gray-800 mb-6">Login to Your Account</h2>
                     
-                    <form class="space-y-6">
+                    <form class="space-y-6" method="POST" action="">
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">Email Address</label>
-                            <input type="email" required
+                            <input type="email" name="email" required
                                 class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
                                 placeholder="Enter your email">
                         </div>
 
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">Password</label>
-                            <input type="password" required
+                            <input type="password" name="password" required
                                 class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
                                 placeholder="Enter your password">
                         </div>

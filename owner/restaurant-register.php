@@ -144,5 +144,19 @@
             </div>
         </div>
     </div>
+    <script>
+        // Show SweetAlert if redirected after successful registration
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('registered') === '1') {
+            Swal.fire({
+                icon: 'success',
+                title: 'Registration Successful',
+                text: 'You can now log in to your account.',
+                timer: 2000,
+                timerProgressBar: true,
+                showConfirmButton: false
+            });
+        }
+    </script>
 </body>
 </html>

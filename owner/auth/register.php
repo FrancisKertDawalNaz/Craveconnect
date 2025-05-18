@@ -40,19 +40,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                VALUES ('$fullname', '$email', '$phone', '$restaurant_name', '$restaurant_address', '$cuisine_type', '$hashed_password')";
 
     if (mysqli_query($conn, $insert)) {
-        echo "<script>
-                Swal.fire({
-                    icon: 'success',
-                    title: 'Registration Successful',
-                    text: 'You can now log in to your account.',
-                    timer: 2000,
-                    timerProgressBar: true,
-                    showConfirmButton: false
-                });
-                setTimeout(function() {
-                    window.location.href = '../restaurant-login.php';
-                }, 2000);
-              </script>";
+        header("Location: ../restaurant-login.php?registered=1");
+        exit();
     } else {
         echo "<script>
                 Swal.fire({
