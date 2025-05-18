@@ -80,9 +80,7 @@
                         Add New Item
                     </button>
                 </div>
-            </header>
-
-            <!-- Menu Content -->
+            </header>            
             <main class="p-6">
                 <!-- Categories -->
                 <div class="mb-6">
@@ -215,18 +213,18 @@
 
             <!-- Modal Body -->
             <div class="p-6 overflow-y-auto">
-                <form class="space-y-6">
+                <form class="space-y-6" method="POST" enctype="multipart/form-data" action="./auth/insert_menu.php">
                     <!-- Basic Information -->
                     <div class="space-y-4">
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">Item Name</label>
-                            <input type="text" required
+                            <input type="text" name="item_name" required
                                 class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
                                 placeholder="Enter item name">
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">Category</label>
-                            <select required
+                            <select name="category" required
                                 class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent">
                                 <option value="">Select category</option>
                                 <option value="appetizers">Appetizers</option>
@@ -239,21 +237,21 @@
                             <label class="block text-sm font-medium text-gray-700 mb-2">Price</label>
                             <div class="relative">
                                 <span class="absolute left-4 top-2 text-gray-500">$</span>
-                                <input type="number" step="0.01" required
+                                <input type="number" step="0.01" name="price" required
                                     class="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
                                     placeholder="0.00">
                             </div>
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">Description</label>
-                            <textarea required
+                            <textarea name="description" required
                                 class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
                                 rows="3"
                                 placeholder="Enter item description"></textarea>
                         </div>
                     </div>
 
-                    <!-- Image Upload -->
+                    <!-- Image Upload (not handled in PHP for now) -->
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-2">Item Image</label>
                         <div class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-lg">
@@ -262,7 +260,7 @@
                                 <div class="flex text-sm text-gray-600">
                                     <label class="relative cursor-pointer bg-white rounded-md font-medium text-primary hover:text-primary/80">
                                         <span>Upload a file</span>
-                                        <input type="file" class="sr-only" accept="image/*">
+                                        <input type="file" class="sr-only" accept="image/*" name="image">
                                     </label>
                                     <p class="pl-1">or drag and drop</p>
                                 </div>
@@ -274,25 +272,23 @@
                     <!-- Additional Options -->
                     <div class="space-y-4">
                         <div class="flex items-center">
-                            <input type="checkbox" id="isAvailable" class="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded">
+                            <input type="checkbox" id="isAvailable" name="is_available" class="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded">
                             <label for="isAvailable" class="ml-2 block text-sm text-gray-700">Item is available</label>
                         </div>
                         <div class="flex items-center">
-                            <input type="checkbox" id="isSpicy" class="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded">
+                            <input type="checkbox" id="isSpicy" name="is_spicy" class="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded">
                             <label for="isSpicy" class="ml-2 block text-sm text-gray-700">Mark as spicy</label>
                         </div>
                     </div>
+                    <div class="flex justify-end">
+                        <button type="button" onclick="closeModal()" class="px-4 py-2 text-gray-700 hover:bg-gray-50 rounded-lg mr-2">
+                            Cancel
+                        </button>
+                        <button type="submit" name="add_menu_item" class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90">
+                            Add Item
+                        </button>
+                    </div>
                 </form>
-            </div>
-
-            <!-- Modal Footer -->
-            <div class="p-6 border-t flex justify-end space-x-4 flex-shrink-0">
-                <button onclick="closeModal()" class="px-4 py-2 text-gray-700 hover:bg-gray-50 rounded-lg">
-                    Cancel
-                </button>
-                <button class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90">
-                    Add Item
-                </button>
             </div>
         </div>
     </div>

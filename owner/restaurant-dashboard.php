@@ -1,5 +1,90 @@
 <?php
 session_start();
+include './auth/connection.php';
+
+
+
+// Fetch active orders count (system-wide)
+$activeOrders = 0;
+$sql = "SELECT COUNT(*) as cnt FROM orders WHERE order_status IN ('Pending', 'Preparing')";
+if ($stmt = $conn->prepare($sql)) {
+    $stmt->execute();
+    $stmt->bind_result($activeOrders);
+    $stmt->fetch();
+    $stmt->close();
+}
+
+// Fetch today's revenue (system-wide)
+$orders_total = 0.00;
+$sql = "SELECT SUM(quantity * price) as total FROM orders WHERE DATE(order_date) = CURDATE()";
+if ($stmt = $conn->prepare($sql)) {
+    $stmt->execute();
+    $stmt->bind_result($orders_total);
+    $stmt->fetch();
+    $stmt->close();
+}
+if ($orders_total === null) {
+    $orders_total = 0.00;
+}
+
+// Fetch active customers for today (system-wide)
+$activeCustomers = 0;
+$sql = "SELECT COUNT(DISTINCT user_id) FROM orders WHERE DATE(order_date) = CURDATE() AND user_id IS NOT NULL";
+if ($stmt = $conn->prepare($sql)) {
+    $stmt->execute();
+    $stmt->bind_result($activeCustomers);
+    $stmt->fetch();
+    $stmt->close();
+}
+
+// Fetch average rating for all feedback (not filtered by user_id)
+$averageRating = 0;
+$sql = "SELECT AVG(rating) FROM feedback";
+if ($stmt = $conn->prepare($sql)) {
+    $stmt->execute();
+    $stmt->bind_result($averageRating);
+    $stmt->fetch();
+    $stmt->close();
+}
+if ($averageRating === null) {
+    $averageRating = 0;
+}
+if ($averageRating < 0) {
+    $averageRating = abs($averageRating);
+}
+
+// Fetch recent orders (system-wide, latest 5)
+$recentOrders = array();
+$sql = "SELECT item_name, quantity, (quantity * price) as total, order_status FROM orders ORDER BY order_date DESC LIMIT 5";
+if ($stmt = $conn->prepare($sql)) {
+    $stmt->execute();
+    $stmt->bind_result($item_name, $quantity, $total, $order_status);
+    while ($stmt->fetch()) {
+        $recentOrders[] = array(
+            'item_name' => $item_name ? $item_name : 'N/A',
+            'quantity' => $quantity,
+            'total' => $total,
+            'order_status' => $order_status
+        );
+    }
+    $stmt->close();
+}
+
+// Fetch top selling items (system-wide, top 3 for today)
+$topSellingItems = array();
+$sql = "SELECT item_name, SUM(quantity) as total_orders, price FROM orders WHERE DATE(order_date) = CURDATE() GROUP BY item_name, price ORDER BY total_orders DESC LIMIT 3";
+if ($stmt = $conn->prepare($sql)) {
+    $stmt->execute();
+    $stmt->bind_result($item_name, $total_orders, $price);
+    while ($stmt->fetch()) {
+        $topSellingItems[] = array(
+            'item_name' => $item_name,
+            'total_orders' => $total_orders,
+            'price' => $price
+        );
+    }
+    $stmt->close();
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -102,7 +187,7 @@ session_start();
                             </div>
                             <div class="ml-4">
                                 <h3 class="text-gray-500 text-sm">Today's Orders</h3>
-                                <p class="text-2xl font-semibold">24</p>
+                                <p class="text-2xl font-semibold"><?php echo $activeOrders; ?></p>
                             </div>
                         </div>
                     </div>
@@ -113,7 +198,7 @@ session_start();
                             </div>
                             <div class="ml-4">
                                 <h3 class="text-gray-500 text-sm">Today's Revenue</h3>
-                                <p class="text-2xl font-semibold">$1,234</p>
+                                <p class="text-2xl font-semibold">$<?php echo $orders_total !== null ? number_format($orders_total, 2) : '0.00'; ?></p>
                             </div>
                         </div>
                     </div>
@@ -124,7 +209,7 @@ session_start();
                             </div>
                             <div class="ml-4">
                                 <h3 class="text-gray-500 text-sm">Active Customers</h3>
-                                <p class="text-2xl font-semibold">156</p>
+                                <p class="text-2xl font-semibold"><?php echo $activeCustomers; ?></p>
                             </div>
                         </div>
                     </div>
@@ -135,7 +220,7 @@ session_start();
                             </div>
                             <div class="ml-4">
                                 <h3 class="text-gray-500 text-sm">Average Rating</h3>
-                                <p class="text-2xl font-semibold">4.8</p>
+                                <p class="text-2xl font-semibold"><?php echo $averageRating > 0 ? number_format($averageRating, 2) : 'N/A'; ?></p>
                             </div>
                         </div>
                     </div>
@@ -151,35 +236,25 @@ session_start();
                             <table class="w-full">
                                 <thead>
                                     <tr class="text-left text-gray-500 text-sm">
-                                        <th class="pb-4">Order ID</th>
-                                        <th class="pb-4">Customer</th>
+                                        <th class="pb-4">Item Name</th>
                                         <th class="pb-4">Items</th>
                                         <th class="pb-4">Total</th>
                                         <th class="pb-4">Status</th>
                                     </tr>
                                 </thead>
                                 <tbody class="text-gray-600">
-                                    <tr class="border-t">
-                                        <td class="py-4">#12345</td>
-                                        <td>John Doe</td>
-                                        <td>3 items</td>
-                                        <td>$45.00</td>
-                                        <td><span class="px-2 py-1 bg-green-100 text-green-600 rounded-full text-sm">Completed</span></td>
-                                    </tr>
-                                    <tr class="border-t">
-                                        <td class="py-4">#12344</td>
-                                        <td>Jane Smith</td>
-                                        <td>2 items</td>
-                                        <td>$32.50</td>
-                                        <td><span class="px-2 py-1 bg-yellow-100 text-yellow-600 rounded-full text-sm">Preparing</span></td>
-                                    </tr>
-                                    <tr class="border-t">
-                                        <td class="py-4">#12343</td>
-                                        <td>Mike Johnson</td>
-                                        <td>4 items</td>
-                                        <td>$67.00</td>
-                                        <td><span class="px-2 py-1 bg-blue-100 text-blue-600 rounded-full text-sm">Delivering</span></td>
-                                    </tr>
+                                    <?php if (count($recentOrders) > 0): ?>
+                                        <?php foreach ($recentOrders as $order): ?>
+                                            <tr class="border-t">
+                                                <td class="py-4"><?php echo htmlspecialchars($order['item_name']); ?></td>
+                                                <td><?php echo htmlspecialchars($order['quantity']); ?> items</td>
+                                                <td>$<?php echo number_format($order['total'], 2); ?></td>
+                                                <td><span class="px-2 py-1 bg-gray-100 text-gray-700 rounded-full text-sm"><?php echo htmlspecialchars($order['order_status']); ?></span></td>
+                                            </tr>
+                                        <?php endforeach; ?>
+                                    <?php else: ?>
+                                        <tr><td colspan="4" class="py-4 text-center text-gray-400">No recent orders found.</td></tr>
+                                    <?php endif; ?>
                                 </tbody>
                             </table>
                         </div>
@@ -193,45 +268,24 @@ session_start();
                     </div>
                     <div class="p-6">
                         <div class="space-y-4">
-                            <div class="flex items-center justify-between">
-                                <div class="flex items-center">
-                                    <img src="https://via.placeholder.com/40" alt="Food item" class="w-10 h-10 rounded-lg">
-                                    <div class="ml-4">
-                                        <h4 class="text-gray-800">Margherita Pizza</h4>
-                                        <p class="text-sm text-gray-500">Italian</p>
+                            <?php if (count($topSellingItems) > 0): ?>
+                                <?php foreach ($topSellingItems as $item): ?>
+                                    <div class="flex items-center justify-between">
+                                        <div class="flex items-center">                                  
+                                            <div class="ml-4">
+                                                <h4 class="text-gray-800"><?php echo htmlspecialchars($item['item_name']); ?></h4>
+                                                <p class="text-sm text-gray-500">&nbsp;</p>
+                                            </div>
+                                        </div>
+                                        <div class="text-right">
+                                            <p class="text-gray-800">$<?php echo number_format($item['price'], 2); ?></p>
+                                            <p class="text-sm text-gray-500"><?php echo $item['total_orders']; ?> orders today</p>
+                                        </div>
                                     </div>
-                                </div>
-                                <div class="text-right">
-                                    <p class="text-gray-800">$12.99</p>
-                                    <p class="text-sm text-gray-500">45 orders today</p>
-                                </div>
-                            </div>
-                            <div class="flex items-center justify-between">
-                                <div class="flex items-center">
-                                    <img src="https://via.placeholder.com/40" alt="Food item" class="w-10 h-10 rounded-lg">
-                                    <div class="ml-4">
-                                        <h4 class="text-gray-800">Chicken Burger</h4>
-                                        <p class="text-sm text-gray-500">American</p>
-                                    </div>
-                                </div>
-                                <div class="text-right">
-                                    <p class="text-gray-800">$8.99</p>
-                                    <p class="text-sm text-gray-500">38 orders today</p>
-                                </div>
-                            </div>
-                            <div class="flex items-center justify-between">
-                                <div class="flex items-center">
-                                    <img src="https://via.placeholder.com/40" alt="Food item" class="w-10 h-10 rounded-lg">
-                                    <div class="ml-4">
-                                        <h4 class="text-gray-800">Pad Thai</h4>
-                                        <p class="text-sm text-gray-500">Thai</p>
-                                    </div>
-                                </div>
-                                <div class="text-right">
-                                    <p class="text-gray-800">$14.99</p>
-                                    <p class="text-sm text-gray-500">32 orders today</p>
-                                </div>
-                            </div>
+                                <?php endforeach; ?>
+                            <?php else: ?>
+                                <div class="text-center text-gray-400">No top selling items today.</div>
+                            <?php endif; ?>
                         </div>
                     </div>
                 </div>
