@@ -53,11 +53,11 @@ $userFullName = $_SESSION['fullname'];
                     <i class="fas fa-gift w-6"></i>
                     <span>Loyalty & Rewards</span>
                 </a>
-                <a href="feedback.php" class="flex items-center px-4 py-3 text-gray-700 hover:bg-gray-100 hover:text-primary">
+                <a href="./feedback.php" class="flex items-center px-4 py-3 text-gray-700 hover:bg-gray-100 hover:text-primary">
                     <i class="fas fa-comment-alt w-6"></i>
                     <span>Feedback</span>
                 </a>
-                <a href="profile.php" class="flex items-center px-4 py-3 text-gray-700 hover:bg-gray-100 hover:text-primary">
+                <a href="./profile.php" class="flex items-center px-4 py-3 text-gray-700 hover:bg-gray-100 hover:text-primary">
                     <i class="fas fa-user w-6"></i>
                     <span>Profile</span>
                 </a>
