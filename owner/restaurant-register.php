@@ -16,7 +16,7 @@
             }
         }
     </script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
 <body class="bg-gray-100 min-h-screen">
     <div class="flex min-h-screen">
@@ -46,25 +46,25 @@
                 <div class="bg-white rounded-lg shadow-lg p-8">
                     <h2 class="text-2xl font-semibold text-gray-800 mb-6">Create Your Restaurant Account</h2>
                     
-                    <form class="space-y-6">
+                    <form class="space-y-6" method="POST" action="./auth/register.php">
                         <!-- Basic Information -->
                         <div class="space-y-4">
                             <h3 class="text-lg font-medium text-gray-700">Basic Information</h3>
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-2">Full Name</label>
-                                <input type="text" required
+                                <input type="text" name="fullname" required
                                     class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
                                     placeholder="Enter your full name">
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-2">Email Address</label>
-                                <input type="email" required
+                                <input type="email" name="email" required
                                     class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
                                     placeholder="Enter email address">
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-2">Phone Number</label>
-                                <input type="tel" required
+                                <input type="tel" name="phone" required
                                     class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
                                     placeholder="Enter phone number">
                             </div>
@@ -75,19 +75,19 @@
                             <h3 class="text-lg font-medium text-gray-700">Restaurant Information</h3>
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-2">Restaurant Name</label>
-                                <input type="text" required
+                                <input type="text" name="restaurant_name" required
                                     class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
                                     placeholder="Enter restaurant name">
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-2">Restaurant Address</label>
-                                <input type="text" required
+                                <input type="text" name="restaurant_address" required
                                     class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
                                     placeholder="Enter restaurant address">
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-2">Cuisine Type</label>
-                                <select required
+                                <select name="cuisine_type" required
                                     class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent">
                                     <option value="">Select cuisine type</option>
                                     <option value="italian">Italian</option>
@@ -106,13 +106,13 @@
                             <h3 class="text-lg font-medium text-gray-700">Account Security</h3>
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-2">Password</label>
-                                <input type="password" required
+                                <input type="password" name="password" required
                                     class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
                                     placeholder="Create a password">
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-2">Confirm Password</label>
-                                <input type="password" required
+                                <input type="password" name="confirm_password" required
                                     class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
                                     placeholder="Confirm your password">
                             </div>
