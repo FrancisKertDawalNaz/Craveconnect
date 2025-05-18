@@ -7,6 +7,23 @@ if (!isset($_SESSION['user_id'])) {
 }
 
 $userFullName = $_SESSION['fullname'];
+
+// Fetch user profile from database
+require_once '../auth/connection.php';
+$userId = $_SESSION['user_id'];
+$userProfile = [
+    'fullname' => '',
+    'email' => '',
+    'phone' => ''
+];
+$sql = "SELECT fullname, email, phone FROM users WHERE id = ?";
+if ($stmt = $conn->prepare($sql)) {
+    $stmt->bind_param('i', $userId);
+    $stmt->execute();
+    $stmt->bind_result($userProfile['fullname'], $userProfile['email'], $userProfile['phone']);
+    $stmt->fetch();
+    $stmt->close();
+}
 ?>
 
 <!DOCTYPE html>
@@ -29,6 +46,7 @@ $userFullName = $_SESSION['fullname'];
     </script>
     <!-- Hero Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
 <body class="bg-gray-100">
     <div class="flex h-screen">
@@ -102,25 +120,91 @@ $userFullName = $_SESSION['fullname'];
                     <form class="space-y-4">
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">Full Name</label>
-                            <input type="text" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" value="<?php echo htmlspecialchars($userFullName); ?>" readonly>
+                            <input type="text" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" value="<?php echo htmlspecialchars($userProfile['fullname']); ?>" readonly>
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">Email</label>
-                            <input type="email" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" value="user@email.com" readonly>
+                            <input type="email" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" value="<?php echo htmlspecialchars($userProfile['email']); ?>" readonly>
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">Phone</label>
-                            <input type="text" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" value="09XXXXXXXXX" readonly>
+                            <input type="text" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" value="<?php echo htmlspecialchars($userProfile['phone']); ?>" readonly>
                         </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Address</label>
-                            <input type="text" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" value="123 Main St, City, Country" readonly>
-                        </div>
-                        <button type="button" class="w-full bg-primary text-white py-2 rounded-lg hover:bg-primary/90 font-medium" disabled>
-                            Edit Profile (Coming Soon)
+                        <button type="button" id="editProfileBtn" class="w-full bg-primary text-white py-2 rounded-lg hover:bg-primary/90 font-medium">
+                            Edit Profile
                         </button>
                     </form>
                 </div>
+                <!-- Edit Profile Modal -->
+                <div id="editProfileModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40 hidden">
+                    <div class="bg-white rounded-lg shadow-lg p-8 w-full max-w-md relative">
+                        <button id="closeModalBtn" class="absolute top-2 right-2 text-gray-400 hover:text-gray-700 text-2xl">&times;</button>
+                        <h3 class="text-lg font-semibold mb-4">Edit Profile</h3>
+                        <form id="editProfileForm" class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Full Name</label>
+                                <input type="text" name="fullname" id="editFullName" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" value="<?php echo htmlspecialchars($userProfile['fullname']); ?>" required>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Email</label>
+                                <input type="email" name="email" id="editEmail" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" value="<?php echo htmlspecialchars($userProfile['email']); ?>" required>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Phone</label>
+                                <input type="text" name="phone" id="editPhone" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" value="<?php echo htmlspecialchars($userProfile['phone']); ?>" required>
+                            </div>
+                            <button type="submit" class="w-full bg-primary text-white py-2 rounded-lg hover:bg-primary/90 font-medium">Save Changes</button>
+                        </form>
+                    </div>
+                </div>
+                <script>
+                // Modal open/close logic
+                const editProfileBtn = document.getElementById('editProfileBtn');
+                const editProfileModal = document.getElementById('editProfileModal');
+                const closeModalBtn = document.getElementById('closeModalBtn');
+                if (editProfileBtn && editProfileModal && closeModalBtn) {
+                    editProfileBtn.addEventListener('click', function() {
+                        editProfileModal.classList.remove('hidden');
+                    });
+                    closeModalBtn.addEventListener('click', function() {
+                        editProfileModal.classList.add('hidden');
+                    });
+                    window.addEventListener('click', function(e) {
+                        if (e.target === editProfileModal) {
+                            editProfileModal.classList.add('hidden');
+                        }
+                    });
+                }
+
+                // Handle profile update form submit
+                const editProfileForm = document.getElementById('editProfileForm');
+                if (editProfileForm) {
+                    editProfileForm.addEventListener('submit', function(e) {
+                        e.preventDefault();
+                        const fullname = document.getElementById('editFullName').value.trim();
+                        const email = document.getElementById('editEmail').value.trim();
+                        const phone = document.getElementById('editPhone').value.trim();
+                        fetch('../auth/update_profile.php', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ fullname, email, phone })
+                        })
+                        .then(res => res.json())
+                        .then(data => {
+                            if (data.success) {
+                                Swal.fire('Success', data.message, 'success').then(() => {
+                                    location.reload();
+                                });
+                            } else {
+                                Swal.fire('Error', data.message, 'error');
+                            }
+                        })
+                        .catch(() => {
+                            Swal.fire('Error', 'Something went wrong.', 'error');
+                        });
+                    });
+                }
+                </script>
             </main>
         </div>
     </div>

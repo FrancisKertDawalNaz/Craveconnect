@@ -7,6 +7,15 @@ if (!isset($_SESSION['user_id'])) {
 }
 
 $userFullName = $_SESSION['fullname'];
+
+// Fetch user points
+require_once '../auth/connection.php';
+$userId = $_SESSION['user_id'];
+$points = 0;
+$pointsResult = $conn->query("SELECT points FROM users WHERE id = $userId");
+if ($pointsResult && $row = $pointsResult->fetch_assoc()) {
+    $points = $row['points'];
+}
 ?>
 
 
@@ -98,7 +107,7 @@ $userFullName = $_SESSION['fullname'];
                         <div>
                             <h3 class="text-lg font-semibold mb-2">Your Points</h3>
                             <div class="flex items-baseline space-x-2">
-                                <span class="text-3xl font-bold text-primary">1,250</span>
+                                <span class="text-3xl font-bold text-primary"><?php echo $points; ?></span>
                                 <span class="text-gray-500">points</span>
                             </div>
                         </div>
@@ -109,16 +118,23 @@ $userFullName = $_SESSION['fullname'];
                     </div>
                     <!-- Progress Bar -->
                     <div class="mt-4">
+                        <?php
+                        $nextReward = 2000;
+                        $progress = min(100, ($points / $nextReward) * 100);
+                        $pointsToNext = max(0, $nextReward - $points);
+                        ?>
                         <div class="w-full bg-gray-200 rounded-full h-2.5">
-                            <div class="bg-primary h-2.5 rounded-full" style="width: 62.5%"></div>
+                            <div class="bg-primary h-2.5 rounded-full" style="width: <?php echo $progress; ?>%"></div>
                         </div>
-                        <p class="text-sm text-gray-500 mt-2">750 points to next reward</p>
+                        <p class="text-sm text-gray-500 mt-2">
+                            <?php echo $pointsToNext; ?> points to next reward
+                        </p>
                     </div>
                 </div>
 
                 <!-- Available Rewards -->
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    <!-- Reward Card -->
+                    <!-- Reward Card: Free Main Course (2000 points) -->
                     <div class="bg-white rounded-lg shadow overflow-hidden">
                         <div class="p-6">
                             <div class="flex items-center justify-between mb-4">
@@ -129,13 +145,19 @@ $userFullName = $_SESSION['fullname'];
                             </div>
                             <h3 class="text-lg font-semibold mb-2">Free Main Course</h3>
                             <p class="text-gray-600 text-sm mb-4">Get any main course item for free, up to $25 value</p>
-                            <button class="w-full bg-gray-100 text-gray-700 py-2 rounded-lg hover:bg-gray-200 font-medium">
-                                Not Enough Points
-                            </button>
+                            <?php if ($points >= 2000): ?>
+                                <button class="w-full bg-primary text-white py-2 rounded-lg hover:bg-primary/90 font-medium">
+                                    Redeem Now
+                                </button>
+                            <?php else: ?>
+                                <button class="w-full bg-gray-100 text-gray-700 py-2 rounded-lg font-medium" disabled>
+                                    Not Enough Points
+                                </button>
+                            <?php endif; ?>
                         </div>
                     </div>
 
-                    <!-- Reward Card -->
+                    <!-- Reward Card: Free Appetizer (1000 points) -->
                     <div class="bg-white rounded-lg shadow overflow-hidden">
                         <div class="p-6">
                             <div class="flex items-center justify-between mb-4">
@@ -146,13 +168,19 @@ $userFullName = $_SESSION['fullname'];
                             </div>
                             <h3 class="text-lg font-semibold mb-2">Free Appetizer</h3>
                             <p class="text-gray-600 text-sm mb-4">Get any appetizer for free, up to $15 value</p>
-                            <button class="w-full bg-primary text-white py-2 rounded-lg hover:bg-primary/90 font-medium">
-                                Redeem Now
-                            </button>
+                            <?php if ($points >= 1000): ?>
+                                <button class="w-full bg-primary text-white py-2 rounded-lg hover:bg-primary/90 font-medium">
+                                    Redeem Now
+                                </button>
+                            <?php else: ?>
+                                <button class="w-full bg-gray-100 text-gray-700 py-2 rounded-lg font-medium" disabled>
+                                    Not Enough Points
+                                </button>
+                            <?php endif; ?>
                         </div>
                     </div>
 
-                    <!-- Reward Card -->
+                    <!-- Reward Card: Free Dessert (500 points) -->
                     <div class="bg-white rounded-lg shadow overflow-hidden">
                         <div class="p-6">
                             <div class="flex items-center justify-between mb-4">
@@ -163,9 +191,15 @@ $userFullName = $_SESSION['fullname'];
                             </div>
                             <h3 class="text-lg font-semibold mb-2">Free Dessert</h3>
                             <p class="text-gray-600 text-sm mb-4">Get any dessert for free, up to $10 value</p>
-                            <button class="w-full bg-primary text-white py-2 rounded-lg hover:bg-primary/90 font-medium">
-                                Redeem Now
-                            </button>
+                            <?php if ($points >= 500): ?>
+                                <button class="w-full bg-primary text-white py-2 rounded-lg hover:bg-primary/90 font-medium">
+                                    Redeem Now
+                                </button>
+                            <?php else: ?>
+                                <button class="w-full bg-gray-100 text-gray-700 py-2 rounded-lg font-medium" disabled>
+                                    Not Enough Points
+                                </button>
+                            <?php endif; ?>
                         </div>
                     </div>
                 </div>
@@ -175,27 +209,38 @@ $userFullName = $_SESSION['fullname'];
                     <h3 class="text-lg font-semibold mb-4">Points History</h3>
                     <div class="bg-white rounded-lg shadow overflow-hidden">
                         <div class="divide-y">
+                            <?php
+                            // Fetch points history for this user
+                            $history = [];
+                            $sql = "SELECT type, reference, points, created_at FROM points_history WHERE user_id = ? ORDER BY created_at DESC LIMIT 20";
+                            if ($stmt = $conn->prepare($sql)) {
+                                $stmt->bind_param('i', $userId);
+                                $stmt->execute();
+                                $result = $stmt->get_result();
+                                while ($row = $result->fetch_assoc()) {
+                                    $history[] = $row;
+                                }
+                                $stmt->close();
+                            }
+                            if (count($history) > 0):
+                                foreach ($history as $entry):
+                                    $isEarn = $entry['type'] === 'earn';
+                                    $color = $isEarn ? 'text-green-600' : 'text-red-600';
+                                    $sign = $isEarn ? '+' : '-';
+                                    $ref = htmlspecialchars($entry['reference']);
+                                    $date = date('F j, Y', strtotime($entry['created_at']));
+                                    $points = intval($entry['points']);
+                            ?>
                             <div class="p-4 flex justify-between items-center">
                                 <div>
-                                    <p class="font-medium">Order #12345</p>
-                                    <p class="text-sm text-gray-500">March 15, 2024</p>
+                                    <p class="font-medium"><?php echo $ref; ?></p>
+                                    <p class="text-sm text-gray-500"><?php echo $date; ?></p>
                                 </div>
-                                <span class="text-green-600 font-medium">+50 points</span>
+                                <span class="<?php echo $color; ?> font-medium"><?php echo $sign . $points; ?> points</span>
                             </div>
-                            <div class="p-4 flex justify-between items-center">
-                                <div>
-                                    <p class="font-medium">Reward Redemption</p>
-                                    <p class="text-sm text-gray-500">March 10, 2024</p>
-                                </div>
-                                <span class="text-red-600 font-medium">-500 points</span>
-                            </div>
-                            <div class="p-4 flex justify-between items-center">
-                                <div>
-                                    <p class="font-medium">Order #12344</p>
-                                    <p class="text-sm text-gray-500">March 8, 2024</p>
-                                </div>
-                                <span class="text-green-600 font-medium">+75 points</span>
-                            </div>
+                            <?php endforeach; else: ?>
+                            <div class="p-4 text-gray-400 text-center">No points history yet.</div>
+                            <?php endif; ?>
                         </div>
                     </div>
                 </div>

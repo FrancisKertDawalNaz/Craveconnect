@@ -20,6 +20,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt = $conn->prepare("INSERT INTO orders (user_id, item_name, quantity, price, total) VALUES (?, ?, ?, ?, ?)");
         $stmt->bind_param('isidd', $user_id, $item_name, $quantity, $price, $total);
         if ($stmt->execute()) {
+            // Award points: 10 points per order (or you can use floor($total) for 1 point per peso/dollar)
+            $points = 10;
+            $conn->query("UPDATE users SET points = points + $points WHERE id = $user_id");
+            // Log to points_history
+            $order_id = $stmt->insert_id;
+            $ph_stmt = $conn->prepare("INSERT INTO points_history (user_id, type, reference, points) VALUES (?, 'earn', ?, ?)");
+            $reference = 'Order #' . $order_id;
+            $ph_stmt->bind_param('isi', $user_id, $reference, $points);
+            $ph_stmt->execute();
+            $ph_stmt->close();
             echo json_encode(['success' => true, 'message' => 'Order placed successfully']);
         } else {
             echo json_encode(['success' => false, 'message' => 'Database error']);

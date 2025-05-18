@@ -7,6 +7,71 @@ if (!isset($_SESSION['user_id'])) {
 }
 
 $userFullName = $_SESSION['fullname'];
+
+// Fetch user's orders for feedback dropdown
+require_once '../auth/connection.php';
+$userId = $_SESSION['user_id'];
+$orders = [];
+$sql = "SELECT id, order_date FROM orders WHERE user_id = ? ORDER BY order_date DESC";
+if ($stmt = $conn->prepare($sql)) {
+    $stmt->bind_param('i', $userId);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    while ($row = $result->fetch_assoc()) {
+        $orders[] = $row;
+    }
+    $stmt->close();
+}
+
+// Handle feedback form submission
+$feedbackMsg = '';
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $order_id = intval($_POST['order_id'] ?? 0);
+    $rating = intval($_POST['rating'] ?? 0);
+    $categories = isset($_POST['categories']) ? implode(',', $_POST['categories']) : '';
+    $comments = trim($_POST['comments'] ?? '');
+    if ($order_id && $rating) {
+        $stmt = $conn->prepare("INSERT INTO feedback (user_id, order_id, rating, categories, comments) VALUES (?, ?, ?, ?, ?)");
+        $stmt->bind_param('iiiss', $userId, $order_id, $rating, $categories, $comments);
+        if ($stmt->execute()) {
+            if (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
+                // AJAX: return only the message, no redirect
+                header('Content-Type: text/plain');
+                echo 'Feedback submitted!';
+                exit();
+            } else {
+                // Redirect after POST to prevent resubmission on refresh
+                header('Location: feedback.php');
+                exit();
+            }
+        } else {
+            if (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
+                header('Content-Type: text/plain');
+                echo 'Error saving feedback.';
+                exit();
+            } else {
+                $feedbackMsg = '<div class="bg-red-100 text-red-700 p-2 rounded mb-4">Error saving feedback.</div>';
+            }
+        }
+        $stmt->close();
+    } else {
+        $feedbackMsg = '<div class="bg-red-100 text-red-700 p-2 rounded mb-4">Please select an order and rating.</div>';
+    }
+}
+// removed green message on reload
+
+// Fetch user's feedback history
+$feedbacks = [];
+$sql = "SELECT f.*, o.id as order_id, o.order_date FROM feedback f LEFT JOIN orders o ON f.order_id = o.id WHERE f.user_id = ? ORDER BY f.created_at DESC";
+if ($stmt = $conn->prepare($sql)) {
+    $stmt->bind_param('i', $userId);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    while ($row = $result->fetch_assoc()) {
+        $feedbacks[] = $row;
+    }
+    $stmt->close();
+}
 ?>
 
 <!DOCTYPE html>
@@ -94,14 +159,16 @@ $userFullName = $_SESSION['fullname'];
                 <!-- Feedback Form -->
                 <div class="bg-white rounded-lg shadow p-6 mb-6">
                     <h3 class="text-lg font-semibold mb-4">Submit Feedback</h3>
-                    <form class="space-y-4">
+                    <?php if (!empty($feedbackMsg)) echo $feedbackMsg; ?>
+                    <form class="space-y-4" method="POST" id="feedbackForm">
                         <!-- Order Selection -->
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">Select Order</label>
-                            <select class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent">
+                            <select name="order_id" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" required>
                                 <option value="">Select an order...</option>
-                                <option value="12345">Order #12345 - March 15, 2024</option>
-                                <option value="12344">Order #12344 - March 8, 2024</option>
+                                <?php foreach ($orders as $order): ?>
+                                    <option value="<?php echo $order['id']; ?>">Order #<?php echo $order['id']; ?> - <?php echo date('M d, Y', strtotime($order['order_date'])); ?></option>
+                                <?php endforeach; ?>
                             </select>
                         </div>
 
@@ -109,21 +176,12 @@ $userFullName = $_SESSION['fullname'];
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">Rating</label>
                             <div class="flex space-x-2">
-                                <button type="button" class="text-2xl text-gray-300 hover:text-yellow-400 focus:outline-none">
-                                    <i class="fas fa-star"></i>
-                                </button>
-                                <button type="button" class="text-2xl text-gray-300 hover:text-yellow-400 focus:outline-none">
-                                    <i class="fas fa-star"></i>
-                                </button>
-                                <button type="button" class="text-2xl text-gray-300 hover:text-yellow-400 focus:outline-none">
-                                    <i class="fas fa-star"></i>
-                                </button>
-                                <button type="button" class="text-2xl text-gray-300 hover:text-yellow-400 focus:outline-none">
-                                    <i class="fas fa-star"></i>
-                                </button>
-                                <button type="button" class="text-2xl text-gray-300 hover:text-yellow-400 focus:outline-none">
-                                    <i class="fas fa-star"></i>
-                                </button>
+                                <?php for ($i = 1; $i <= 5; $i++): ?>
+                                    <label>
+                                        <input type="radio" name="rating" value="<?php echo $i; ?>" class="hidden" required>
+                                        <i class="fas fa-star text-2xl text-gray-300 hover:text-yellow-400 cursor-pointer"></i>
+                                    </label>
+                                <?php endfor; ?>
                             </div>
                         </div>
 
@@ -131,32 +189,19 @@ $userFullName = $_SESSION['fullname'];
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">What was good?</label>
                             <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
+                                <?php $cats = ['Food Quality','Service','Delivery Time','Value for Money']; foreach ($cats as $cat): ?>
                                 <label class="flex items-center space-x-2 p-2 border rounded-lg hover:bg-gray-50 cursor-pointer">
-                                    <input type="checkbox" class="rounded text-primary focus:ring-primary">
-                                    <span class="text-sm">Food Quality</span>
+                                    <input type="checkbox" name="categories[]" value="<?php echo $cat; ?>" class="rounded text-primary focus:ring-primary">
+                                    <span class="text-sm"><?php echo $cat; ?></span>
                                 </label>
-                                <label class="flex items-center space-x-2 p-2 border rounded-lg hover:bg-gray-50 cursor-pointer">
-                                    <input type="checkbox" class="rounded text-primary focus:ring-primary">
-                                    <span class="text-sm">Service</span>
-                                </label>
-                                <label class="flex items-center space-x-2 p-2 border rounded-lg hover:bg-gray-50 cursor-pointer">
-                                    <input type="checkbox" class="rounded text-primary focus:ring-primary">
-                                    <span class="text-sm">Delivery Time</span>
-                                </label>
-                                <label class="flex items-center space-x-2 p-2 border rounded-lg hover:bg-gray-50 cursor-pointer">
-                                    <input type="checkbox" class="rounded text-primary focus:ring-primary">
-                                    <span class="text-sm">Value for Money</span>
-                                </label>
+                                <?php endforeach; ?>
                             </div>
                         </div>
 
                         <!-- Comments -->
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">Comments</label>
-                            <textarea 
-                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-                                rows="4"
-                                placeholder="Share your experience..."></textarea>
+                            <textarea name="comments" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" rows="4" placeholder="Share your experience..."></textarea>
                         </div>
 
                         <!-- Submit Button -->
@@ -170,56 +215,38 @@ $userFullName = $_SESSION['fullname'];
                 <div>
                     <h3 class="text-lg font-semibold mb-4">Your Past Feedback</h3>
                     <div class="space-y-4">
-                        <!-- Feedback Card -->
-                        <div class="bg-white rounded-lg shadow p-6">
-                            <div class="flex justify-between items-start mb-4">
-                                <div>
-                                    <h4 class="font-medium">Order #12344</h4>
-                                    <p class="text-sm text-gray-500">March 8, 2024</p>
+                        <?php if (count($feedbacks) > 0): ?>
+                            <?php foreach ($feedbacks as $fb): ?>
+                                <div class="bg-white rounded-lg shadow p-6">
+                                    <div class="flex justify-between items-start mb-4">
+                                        <div>
+                                            <h4 class="font-medium">Order #<?php echo $fb['order_id']; ?></h4>
+                                            <p class="text-sm text-gray-500"><?php echo date('M d, Y', strtotime($fb['order_date'])); ?></p>
+                                        </div>
+                                        <div class="flex text-yellow-400">
+                                            <?php for ($i = 1; $i <= 5; $i++): ?>
+                                                <i class="<?php echo $i <= $fb['rating'] ? 'fas' : 'far'; ?> fa-star"></i>
+                                            <?php endfor; ?>
+                                        </div>
+                                    </div>
+                                    <div class="flex flex-wrap gap-2 mb-3">
+                                        <?php foreach (explode(',', $fb['categories']) as $cat): if ($cat): ?>
+                                            <span class="px-2 py-1 bg-gray-100 text-gray-600 text-sm rounded-full"><?php echo htmlspecialchars($cat); ?></span>
+                                        <?php endif; endforeach; ?>
+                                    </div>
+                                    <p class="text-gray-600"><?php echo htmlspecialchars($fb['comments']); ?></p>
                                 </div>
-                                <div class="flex text-yellow-400">
-                                    <i class="fas fa-star"></i>
-                                    <i class="fas fa-star"></i>
-                                    <i class="fas fa-star"></i>
-                                    <i class="fas fa-star"></i>
-                                    <i class="fas fa-star"></i>
-                                </div>
-                            </div>
-                            <div class="flex flex-wrap gap-2 mb-3">
-                                <span class="px-2 py-1 bg-gray-100 text-gray-600 text-sm rounded-full">Food Quality</span>
-                                <span class="px-2 py-1 bg-gray-100 text-gray-600 text-sm rounded-full">Service</span>
-                                <span class="px-2 py-1 bg-gray-100 text-gray-600 text-sm rounded-full">Value for Money</span>
-                            </div>
-                            <p class="text-gray-600">Great experience! The food was delicious and arrived hot. The delivery was prompt and the service was excellent.</p>
-                        </div>
-
-                        <!-- Feedback Card -->
-                        <div class="bg-white rounded-lg shadow p-6">
-                            <div class="flex justify-between items-start mb-4">
-                                <div>
-                                    <h4 class="font-medium">Order #12343</h4>
-                                    <p class="text-sm text-gray-500">March 1, 2024</p>
-                                </div>
-                                <div class="flex text-yellow-400">
-                                    <i class="fas fa-star"></i>
-                                    <i class="fas fa-star"></i>
-                                    <i class="fas fa-star"></i>
-                                    <i class="fas fa-star"></i>
-                                    <i class="far fa-star"></i>
-                                </div>
-                            </div>
-                            <div class="flex flex-wrap gap-2 mb-3">
-                                <span class="px-2 py-1 bg-gray-100 text-gray-600 text-sm rounded-full">Food Quality</span>
-                                <span class="px-2 py-1 bg-gray-100 text-gray-600 text-sm rounded-full">Delivery Time</span>
-                            </div>
-                            <p class="text-gray-600">The food was good but delivery took longer than expected. Would order again but hope for better timing.</p>
-                        </div>
+                            <?php endforeach; ?>
+                        <?php else: ?>
+                            <div class="text-gray-400 text-center">No feedback yet.</div>
+                        <?php endif; ?>
                     </div>
                 </div>
             </main>
         </div>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
         // Star Rating Functionality
         const starButtons = document.querySelectorAll('.text-2xl');
@@ -236,6 +263,26 @@ $userFullName = $_SESSION['fullname'];
                     starButtons[i].classList.add('text-yellow-400');
                 }
             });
+        });
+
+        // AJAX Feedback Submit with SweetAlert
+        document.getElementById('feedbackForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const form = e.target;
+            const formData = new FormData(form);
+            // Mark as AJAX
+            formData.append('ajax', '1');
+            const res = await fetch('', {
+                method: 'POST',
+                headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                body: formData
+            });
+            const msg = await res.text();
+            if (msg && msg.indexOf('Feedback submitted') !== -1) {
+                Swal.fire({ icon: 'success', title: 'Thank you!', text: msg, confirmButtonColor: '#E63946' }).then(() => window.location.reload());
+            } else {
+                Swal.fire({ icon: 'error', title: 'Error', text: msg || 'Please check your input.', confirmButtonColor: '#E63946' });
+            }
         });
     </script>
 </body>

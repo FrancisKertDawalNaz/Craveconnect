@@ -28,6 +28,7 @@ $userFullName = $_SESSION['fullname'];
         }
     </script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
 <body class="bg-gray-100">
     <div class="flex h-screen">
@@ -188,14 +189,29 @@ $userFullName = $_SESSION['fullname'];
         .then(data => {
             closeModal();
             if (data.success) {
-                alert('Order placed!');
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Order placed!',
+                    text: 'Your order has been placed successfully.',
+                    confirmButtonColor: '#E63946'
+                });
             } else {
-                alert('Order failed: ' + data.message);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Order failed',
+                    text: data.message,
+                    confirmButtonColor: '#E63946'
+                });
             }
         })
         .catch(() => {
             closeModal();
-            alert('Order failed: Network error');
+            Swal.fire({
+                icon: 'error',
+                title: 'Order failed',
+                text: 'Network error. Please try again.',
+                confirmButtonColor: '#E63946'
+            });
         });
     };
     </script>

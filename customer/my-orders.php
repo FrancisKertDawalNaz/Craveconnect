@@ -29,6 +29,9 @@ $userFullName = $_SESSION['fullname'];
     </script>
     <!-- Hero Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <!-- SweetAlert2 -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
 <body class="bg-gray-100">
     <div class="flex h-screen">
@@ -96,175 +99,77 @@ $userFullName = $_SESSION['fullname'];
                             <button class="px-6 py-4 text-primary border-b-2 border-primary font-medium">
                                 All Orders
                             </button>
-                            <button class="px-6 py-4 text-gray-500 hover:text-gray-700 font-medium">
-                                Active
-                            </button>
-                            <button class="px-6 py-4 text-gray-500 hover:text-gray-700 font-medium">
-                                Completed
-                            </button>
-                            <button class="px-6 py-4 text-gray-500 hover:text-gray-700 font-medium">
-                                Cancelled
-                            </button>
                         </nav>
                     </div>
                 </div>
 
                 <!-- Orders List -->
                 <div class="space-y-6">
-                    <!-- Order 1 -->
-                    <div class="bg-white rounded-lg shadow">
-                        <div class="p-6">
-                            <div class="flex items-center justify-between mb-4">
-                                <div>
-                                    <h3 class="text-lg font-semibold text-gray-800">Order #12345</h3>
-                                    <p class="text-sm text-gray-500">March 15, 2024 • 2:30 PM</p>
-                                </div>
-                                <span class="px-3 py-1 bg-green-100 text-green-800 text-sm rounded-full">Preparing</span>
-                            </div>
-                            
-                            <!-- Order Items -->
-                            <div class="space-y-4 mb-6">
-                                <div class="flex items-center justify-between">
-                                    <div class="flex items-center space-x-4">
-                                        <img src="https://images.unsplash.com/photo-1513104890138-7c749659a591" 
-                                            alt="Margherita Pizza" 
-                                            class="w-16 h-16 rounded-lg object-cover">
+                    <?php
+                    // Fetch orders for this user from the database
+                    require_once '../auth/connection.php';
+                    $userId = $_SESSION['user_id'];
+                    $orders = [];
+                    $sql = "SELECT id, item_name, quantity, total, order_status, order_date FROM orders WHERE user_id = ? ORDER BY order_date DESC";
+                    if ($stmt = $conn->prepare($sql)) {
+                        $stmt->bind_param('i', $userId);
+                        $stmt->execute();
+                        $result = $stmt->get_result();
+                        while ($row = $result->fetch_assoc()) {
+                            $orders[] = $row;
+                        }
+                        $stmt->close();
+                    }
+                    ?>
+
+                    <?php if (count($orders) > 0): ?>
+                        <?php foreach ($orders as $order): ?>
+                            <div class="bg-white rounded-lg shadow">
+                                <div class="p-6">
+                                    <div class="flex items-center justify-between mb-4">
                                         <div>
-                                            <h4 class="text-sm font-medium text-gray-900">Margherita Pizza</h4>
-                                            <p class="text-sm text-gray-500">Regular • Extra Cheese</p>
+                                            <h3 class="text-lg font-semibold text-gray-800">Order #<?php echo $order['id']; ?></h3>
+                                            <p class="text-sm text-gray-500"><?php echo date('F d, Y • h:i A', strtotime($order['order_date'])); ?></p>
+                                        </div>
+                                        <?php
+                                        $status = $order['order_status'];
+                                        $statusClass = 'bg-gray-200 text-gray-700';
+                                        if ($status === 'Pending') $statusClass = 'bg-yellow-100 text-yellow-800';
+                                        else if ($status === 'Preparing') $statusClass = 'bg-yellow-200 text-yellow-900';
+                                        else if ($status === 'Completed') $statusClass = 'bg-green-100 text-green-800';
+                                        else if ($status === 'Cancelled') $statusClass = 'bg-red-100 text-red-800';
+                                        ?>
+                                        <span class="px-3 py-1 text-sm rounded-full <?php echo $statusClass; ?>">
+                                            <?php echo htmlspecialchars($status); ?>
+                                        </span>
+                                    </div>
+                                    
+                                    <!-- Order Items (simple version, since only item_name/quantity/total in DB) -->
+                                    <div class="space-y-4 mb-6">
+                                        <div class="flex items-center justify-between">
+                                            <div>
+                                                <h4 class="text-sm font-medium text-gray-900"><?php echo htmlspecialchars($order['item_name']); ?></h4>
+                                            </div>
+                                            <div class="text-right">
+                                                <p class="text-sm font-medium text-gray-900">$<?php echo number_format($order['total'], 2); ?></p>
+                                                <p class="text-sm text-gray-500">Qty: <?php echo $order['quantity']; ?></p>
+                                            </div>
                                         </div>
                                     </div>
-                                    <div class="text-right">
-                                        <p class="text-sm font-medium text-gray-900">$12.99</p>
-                                        <p class="text-sm text-gray-500">Qty: 1</p>
-                                    </div>
-                                </div>
-                                <div class="flex items-center justify-between">
-                                    <div class="flex items-center space-x-4">
-                                        <img src="https://images.unsplash.com/photo-1551024709-8f23befc6f87" 
-                                            alt="Tiramisu" 
-                                            class="w-16 h-16 rounded-lg object-cover">
-                                        <div>
-                                            <h4 class="text-sm font-medium text-gray-900">Tiramisu</h4>
-                                            <p class="text-sm text-gray-500">Classic</p>
+
+                                    <!-- Order Summary -->
+                                    <div class="border-t pt-4">
+                                        <div class="flex justify-between items-center mb-2">
+                                            <span class="text-sm text-gray-600">Total</span>
+                                            <span class="text-sm font-medium text-gray-900">$<?php echo number_format($order['total'], 2); ?></span>
                                         </div>
                                     </div>
-                                    <div class="text-right">
-                                        <p class="text-sm font-medium text-gray-900">$6.99</p>
-                                        <p class="text-sm text-gray-500">Qty: 1</p>
-                                    </div>
                                 </div>
                             </div>
-
-                            <!-- Order Summary -->
-                            <div class="border-t pt-4">
-                                <div class="flex justify-between items-center mb-2">
-                                    <span class="text-sm text-gray-600">Subtotal</span>
-                                    <span class="text-sm font-medium text-gray-900">$19.98</span>
-                                </div>
-                                <div class="flex justify-between items-center mb-2">
-                                    <span class="text-sm text-gray-600">Delivery Fee</span>
-                                    <span class="text-sm font-medium text-gray-900">$2.99</span>
-                                </div>
-                                <div class="flex justify-between items-center mb-2">
-                                    <span class="text-sm text-gray-600">Tax</span>
-                                    <span class="text-sm font-medium text-gray-900">$1.83</span>
-                                </div>
-                                <div class="flex justify-between items-center pt-2 border-t">
-                                    <span class="text-base font-medium text-gray-900">Total</span>
-                                    <span class="text-base font-medium text-gray-900">$24.80</span>
-                                </div>
-                            </div>
-
-                            <!-- Order Actions -->
-                            <div class="mt-6 flex items-center justify-between">
-                                <div class="flex items-center space-x-4">
-                                    <button class="text-primary hover:text-primary/80 text-sm font-medium">
-                                        <i class="fas fa-map-marker-alt mr-1"></i>
-                                        Track Order
-                                    </button>
-                                    <button onclick="showReceiptModal('12345')" class="text-gray-500 hover:text-gray-700 text-sm font-medium">
-                                        <i class="fas fa-receipt mr-1"></i>
-                                        View Receipt
-                                    </button>
-                                </div>
-                                <button class="text-red-600 hover:text-red-700 text-sm font-medium">
-                                    <i class="fas fa-times mr-1"></i>
-                                    Cancel Order
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Order 2 -->
-                    <div class="bg-white rounded-lg shadow">
-                        <div class="p-6">
-                            <div class="flex items-center justify-between mb-4">
-                                <div>
-                                    <h3 class="text-lg font-semibold text-gray-800">Order #12344</h3>
-                                    <p class="text-sm text-gray-500">March 14, 2024 • 7:15 PM</p>
-                                </div>
-                                <span class="px-3 py-1 bg-blue-100 text-blue-800 text-sm rounded-full">Delivered</span>
-                            </div>
-                            
-                            <!-- Order Items -->
-                            <div class="space-y-4 mb-6">
-                                <div class="flex items-center justify-between">
-                                    <div class="flex items-center space-x-4">
-                                        <img src="https://images.unsplash.com/photo-1565299624946-b28f40a0ae38" 
-                                            alt="Pepperoni Pizza" 
-                                            class="w-16 h-16 rounded-lg object-cover">
-                                        <div>
-                                            <h4 class="text-sm font-medium text-gray-900">Pepperoni Pizza</h4>
-                                            <p class="text-sm text-gray-500">Large • Extra Pepperoni</p>
-                                        </div>
-                                    </div>
-                                    <div class="text-right">
-                                        <p class="text-sm font-medium text-gray-900">$15.99</p>
-                                        <p class="text-sm text-gray-500">Qty: 1</p>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Order Summary -->
-                            <div class="border-t pt-4">
-                                <div class="flex justify-between items-center mb-2">
-                                    <span class="text-sm text-gray-600">Subtotal</span>
-                                    <span class="text-sm font-medium text-gray-900">$15.99</span>
-                                </div>
-                                <div class="flex justify-between items-center mb-2">
-                                    <span class="text-sm text-gray-600">Delivery Fee</span>
-                                    <span class="text-sm font-medium text-gray-900">$2.99</span>
-                                </div>
-                                <div class="flex justify-between items-center mb-2">
-                                    <span class="text-sm text-gray-600">Tax</span>
-                                    <span class="text-sm font-medium text-gray-900">$1.47</span>
-                                </div>
-                                <div class="flex justify-between items-center pt-2 border-t">
-                                    <span class="text-base font-medium text-gray-900">Total</span>
-                                    <span class="text-base font-medium text-gray-900">$20.45</span>
-                                </div>
-                            </div>
-
-                            <!-- Order Actions -->
-                            <div class="mt-6 flex items-center justify-between">
-                                <div class="flex items-center space-x-4">
-                                    <button onclick="showReceiptModal('12344')" class="text-gray-500 hover:text-gray-700 text-sm font-medium">
-                                        <i class="fas fa-receipt mr-1"></i>
-                                        View Receipt
-                                    </button>
-                                    <button class="text-primary hover:text-primary/80 text-sm font-medium">
-                                        <i class="fas fa-redo mr-1"></i>
-                                        Reorder
-                                    </button>
-                                </div>
-                                <button class="text-primary hover:text-primary/80 text-sm font-medium">
-                                    <i class="fas fa-star mr-1"></i>
-                                    Rate Order
-                                </button>
-                            </div>
-                        </div>
-                    </div>
+                        <?php endforeach; ?>
+                    <?php else: ?>
+                        <div class="text-gray-400 text-center">No orders found.</div>
+                    <?php endif; ?>
                 </div>
             </main>
         </div>
@@ -603,11 +508,44 @@ $userFullName = $_SESSION['fullname'];
                 openPlaceOrderModal();
             });
         }
-        // Optional: Prevent form submit default
-        placeOrderModal.querySelector('form').onsubmit = function(e) {
+        // Price lookup for menu items
+        const itemPrices = {
+            'Classic Burger': 8.99,
+            'Pepperoni Pizza': 12.50,
+            'Caesar Salad': 7.00
+        };
+        // AJAX submit for Place New Order
+        placeOrderModal.querySelector('form').onsubmit = async function(e) {
             e.preventDefault();
-            closePlaceOrderModal();
-            alert('Order placed!');
+            const item = placeOrderModal.querySelector('select').value;
+            const qty = placeOrderModal.querySelector('input[type=number]').value;
+            if (!item || !qty || qty < 1) return;
+            const price = itemPrices[item] || 0;
+            const formData = new FormData();
+            formData.append('item_name', item);
+            formData.append('quantity', qty);
+            formData.append('price', price);
+            const res = await fetch('../auth/insert_order.php', {
+                method: 'POST',
+                body: formData
+            });
+            const data = await res.json();
+            if (data.success) {
+                closePlaceOrderModal();
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Order placed!',
+                    text: 'Your order has been placed successfully.',
+                    confirmButtonColor: '#E63946'
+                }).then(() => window.location.reload());
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Order failed',
+                    text: data.message || 'Order failed.',
+                    confirmButtonColor: '#E63946'
+                });
+            }
         };
 
         function printReceipt() {

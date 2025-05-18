@@ -20,6 +20,32 @@ if ($stmt = $conn->prepare($sql)) {
     $stmt->fetch();
     $stmt->close();
 }
+
+// Fetch recent orders for this user
+$recentOrders = [];
+$sqlRecent = "SELECT id, item_name, quantity, total, order_status, order_date FROM orders WHERE user_id = ? ORDER BY order_date DESC LIMIT 5";
+if ($stmt = $conn->prepare($sqlRecent)) {
+    $stmt->bind_param('i', $userId);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    while ($row = $result->fetch_assoc()) {
+        $recentOrders[] = $row;
+    }
+    $stmt->close();
+}
+
+// Fetch user points
+$points = 0;
+$pointsResult = $conn->query("SELECT points FROM users WHERE id = $userId");
+if ($pointsResult && $row = $pointsResult->fetch_assoc()) {
+    $points = $row['points'];
+}
+
+// Fetch available rewards for this user
+$availableRewards = 0;
+if ($points >= 2000) $availableRewards++;
+if ($points >= 1000) $availableRewards++;
+if ($points >= 500) $availableRewards++;
 ?>
 
 <!DOCTYPE html>
@@ -117,7 +143,7 @@ if ($stmt = $conn->prepare($sql)) {
                             </div>
                             <div class="ml-4">
                                 <h3 class="text-gray-500 text-sm">Loyalty Points</h3>
-                                <p class="text-2xl font-semibold">1,250</p>
+                                <p class="text-2xl font-semibold"><?php echo $points; ?></p>
                             </div>
                         </div>
                     </div>
@@ -128,7 +154,7 @@ if ($stmt = $conn->prepare($sql)) {
                             </div>
                             <div class="ml-4">
                                 <h3 class="text-gray-500 text-sm">Available Rewards</h3>
-                                <p class="text-2xl font-semibold">3</p>
+                                <p class="text-2xl font-semibold"><?php echo $availableRewards; ?></p>
                             </div>
                         </div>
                     </div>
@@ -139,21 +165,31 @@ if ($stmt = $conn->prepare($sql)) {
                         <h3 class="text-lg font-semibold">Recent Orders</h3>
                     </div>
                     <div class="p-6">
-                        <div class="space-y-4">
-                            <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                                <div>
-                                    <h4 class="font-medium">Order #12345</h4>
-                                    <p class="text-sm text-gray-500">2 items • $24.99</p>
-                                </div>
-                                <span class="px-3 py-1 text-sm rounded-full bg-yellow-100 text-yellow-800">Preparing</span>
-                            </div>
-                            <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                                <div>
-                                    <h4 class="font-medium">Order #12344</h4>
-                                    <p class="text-sm text-gray-500">3 items • $32.50</p>
-                                </div>
-                                <span class="px-3 py-1 text-sm rounded-full bg-green-100 text-green-800">Completed</span>
-                            </div>
+                        <div class="space-y-4 max-h-64 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100" style="scrollbar-width: thin;">
+                            <?php if (count($recentOrders) > 0): ?>
+                                <?php foreach ($recentOrders as $order): ?>
+                                    <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                                        <div>
+                                            <h4 class="font-medium">Order #<?php echo $order['id']; ?></h4>
+                                            <p class="text-sm text-gray-500"><?php echo htmlspecialchars($order['quantity'] . ' x ' . $order['item_name'] . ' • $' . number_format($order['total'], 2)); ?></p>
+                                            <p class="text-xs text-gray-400"><?php echo date('M d, Y h:i A', strtotime($order['order_date'])); ?></p>
+                                        </div>
+                                        <?php
+                                        $status = $order['order_status'];
+                                        $statusClass = 'bg-gray-200 text-gray-700';
+                                        if ($status === 'Pending') $statusClass = 'bg-yellow-100 text-yellow-800';
+                                        else if ($status === 'Preparing') $statusClass = 'bg-yellow-200 text-yellow-900';
+                                        else if ($status === 'Completed') $statusClass = 'bg-green-100 text-green-800';
+                                        else if ($status === 'Cancelled') $statusClass = 'bg-red-100 text-red-800';
+                                        ?>
+                                        <span class="px-3 py-1 text-sm rounded-full <?php echo $statusClass; ?>">
+                                            <?php echo htmlspecialchars($status); ?>
+                                        </span>
+                                    </div>
+                                <?php endforeach; ?>
+                            <?php else: ?>
+                                <div class="text-gray-400 text-center">No recent orders found.</div>
+                            <?php endif; ?>
                         </div>
                     </div>
                 </div>
