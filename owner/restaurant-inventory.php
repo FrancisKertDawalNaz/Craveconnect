@@ -166,7 +166,7 @@ $paginated_items = array_slice($inventory_items, $start_index, $items_per_page);
                         <div class="flex items-center justify-between">
                             <div>
                                 <p class="text-sm text-gray-500">Total Value</p>
-                                <h3 class="text-2xl font-semibold text-gray-800">$<?php echo number_format($total_value, 2); ?></h3>
+                                <h3 class="text-2xl font-semibold text-gray-800"><?php echo number_format($total_value, 2); ?></h3>
                             </div>
                             <div class="p-3 bg-green-100 rounded-full">
                                 <i class="fas fa-dollar-sign text-green-500 text-xl"></i>

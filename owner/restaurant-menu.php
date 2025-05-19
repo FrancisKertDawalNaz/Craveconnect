@@ -142,7 +142,7 @@ if (isset($_SESSION['menu_item_added']) && $_SESSION['menu_item_added']) {
                                         <h3 class="text-lg font-semibold text-gray-800"><?php echo htmlspecialchars($item['item_name']); ?></h3>
                                         <p class="text-sm text-gray-500"><?php echo htmlspecialchars($item['category']); ?></p>
                                     </div>
-                                    <span class="text-lg font-semibold text-primary">$<?php echo number_format($item['price'], 2); ?></span>
+                                    <span class="text-lg font-semibold text-primary"><?php echo number_format($item['price'], 2); ?></span>
                                 </div>
                                 <p class="mt-2 text-gray-600 text-sm"><?php echo htmlspecialchars($item['description']); ?></p>
                             </div>

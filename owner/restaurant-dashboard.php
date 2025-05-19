@@ -72,7 +72,7 @@ if ($stmt = $conn->prepare($sql)) {
 
 // Fetch top selling items (system-wide, top 3 for today)
 $topSellingItems = array();
-$sql = "SELECT item_name, SUM(quantity) as total_orders, price FROM orders WHERE DATE(order_date) = CURDATE() GROUP BY item_name, price ORDER BY total_orders DESC LIMIT 3";
+$sql = "SELECT item_name, SUM(quantity) as total_orders, MAX(price) as price FROM orders WHERE DATE(order_date) = CURDATE() GROUP BY item_name ORDER BY total_orders DESC LIMIT 3";
 if ($stmt = $conn->prepare($sql)) {
     $stmt->execute();
     $stmt->bind_result($item_name, $total_orders, $price);
@@ -200,7 +200,7 @@ if ($stmt = $conn->prepare($sql)) {
                             </div>
                             <div class="ml-4">
                                 <h3 class="text-gray-500 text-sm">Today's Revenue</h3>
-                                <p class="text-2xl font-semibold">$<?php echo $orders_total !== null ? number_format($orders_total, 2) : '0.00'; ?></p>
+                                <p class="text-2xl font-semibold"><?php echo $orders_total !== null ? number_format($orders_total, 2) : '0.00'; ?></p>
                             </div>
                         </div>
                     </div>
@@ -250,7 +250,7 @@ if ($stmt = $conn->prepare($sql)) {
                                             <tr class="border-t">
                                                 <td class="py-4"><?php echo htmlspecialchars($order['item_name']); ?></td>
                                                 <td><?php echo htmlspecialchars($order['quantity']); ?> items</td>
-                                                <td>$<?php echo number_format($order['total'], 2); ?></td>
+                                                <td><?php echo number_format($order['total'], 2); ?></td>
                                                 <td><span class="px-2 py-1 rounded-full text-sm
     <?php
                                             if ($order['order_status'] === 'Approved') echo 'bg-green-500 text-white';
@@ -292,7 +292,7 @@ if ($stmt = $conn->prepare($sql)) {
                                             </div>
                                         </div>
                                         <div class="text-right">
-                                            <p class="text-gray-800">$<?php echo number_format($item['price'], 2); ?></p>
+                                            <p class="text-gray-800"><?php echo number_format($item['price'], 2); ?></p>
                                             <p class="text-sm text-gray-500"><?php echo $item['total_orders']; ?> orders today</p>
                                         </div>
                                     </div>

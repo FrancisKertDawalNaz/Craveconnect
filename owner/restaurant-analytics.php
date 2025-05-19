@@ -76,7 +76,7 @@ for ($i = 6; $i >= 0; $i--) {
 
 // Fetch top selling items (system-wide, top 3 for today)
 $topSellingItems = array();
-$sql = "SELECT item_name, SUM(quantity) as total_orders, SUM(total) as total_revenue FROM orders WHERE DATE(order_date) = CURDATE() GROUP BY item_name ORDER BY total_orders DESC LIMIT 3";
+$sql = "SELECT item_name, SUM(quantity) as total_orders, SUM(quantity * price) as total_revenue FROM orders WHERE DATE(order_date) = CURDATE() GROUP BY item_name ORDER BY total_orders DESC LIMIT 3";
 $result = $conn->query($sql);
 if ($result) {
     while ($row = $result->fetch_assoc()) {
@@ -210,7 +210,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
                         <div class="flex items-center justify-between">
                             <div>
                                 <p class="text-sm text-gray-500">Total Revenue</p>
-                                <h3 class="text-2xl font-semibold text-gray-800">$<?php echo number_format($totalRevenue, 2); ?></h3>
+                                <h3 class="text-2xl font-semibold text-gray-800"><?php echo number_format($totalRevenue, 2); ?></h3>
                                 <p class="text-sm text-green-600">&nbsp;</p>
                             </div>
                             <div class="p-3 bg-green-100 rounded-full">
@@ -234,7 +234,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
                         <div class="flex items-center justify-between">
                             <div>
                                 <p class="text-sm text-gray-500">Average Order Value</p>
-                                <h3 class="text-2xl font-semibold text-gray-800">$<?php echo number_format($avgOrderValue, 2); ?></h3>
+                                <h3 class="text-2xl font-semibold text-gray-800"><?php echo number_format($avgOrderValue, 2); ?></h3>
                                 <p class="text-sm text-green-600">&nbsp;</p>
                             </div>
                             <div class="p-3 bg-purple-100 rounded-full">
@@ -288,7 +288,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
                                         </div>
                                         <div class="text-right">
                                             <p class="text-sm font-medium text-gray-900"><?php echo number_format($item['total_orders']); ?> orders</p>
-                                            <p class="text-sm text-gray-500">$<?php echo number_format($item['total_revenue'], 2); ?> revenue</p>
+                                            <p class="text-sm text-gray-500"><?php echo number_format($item['total_revenue'], 2); ?> revenue</p>
                                         </div>
                                     </div>
                                 <?php endforeach; ?>

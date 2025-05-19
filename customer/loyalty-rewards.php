@@ -178,7 +178,7 @@ if ($pointsColumnExists) {
                             <h3 class="text-lg font-semibold mb-2"><?php echo htmlspecialchars($reward['name']); ?></h3>
                             <p class="text-gray-600 text-sm mb-4"><?php echo htmlspecialchars($reward['description']); ?></p>
                             <?php if ($points >= $reward['points']): ?>
-                                <button class="w-full bg-primary text-white py-2 rounded-lg hover:bg-primary/90 font-medium">
+                                <button class="w-full bg-primary text-white py-2 rounded-lg hover:bg-primary/90 font-medium redeem-btn" data-points="<?php echo $reward['points']; ?>" data-name="<?php echo htmlspecialchars($reward['name'], ENT_QUOTES); ?>">
                                     Redeem Now
                                 </button>
                             <?php else: ?>
@@ -264,5 +264,26 @@ if ($pointsColumnExists) {
             </main>
         </div>
     </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+    document.querySelectorAll('.redeem-btn').forEach(btn => {
+        btn.addEventListener('click', async function() {
+            const points = parseInt(this.getAttribute('data-points'));
+            const rewardName = this.getAttribute('data-name');
+            const res = await fetch('redeem_reward.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: `points=${points}&reward_name=${encodeURIComponent(rewardName)}`
+            });
+            const data = await res.json();
+            if (data.success) {
+                Swal.fire({ icon: 'success', title: 'Success', text: data.message, confirmButtonColor: '#E63946' }).then(() => window.location.reload());
+            } else {
+                Swal.fire({ icon: 'error', title: 'Error', text: data.message, confirmButtonColor: '#E63946' });
+            }
+        });
+    });
+    </script>
 </body>
 </html>

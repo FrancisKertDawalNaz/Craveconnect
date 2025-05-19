@@ -239,7 +239,7 @@ if ($result) {
                                 <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
                                     <div>
                                         <h4 class="text-sm font-medium text-gray-900">Points Earning</h4>
-                                        <p class="text-sm text-gray-500">1 point per $1 spent</p>
+                                        <p class="text-sm text-gray-500">1 point per 1 spent</p>
                                     </div>
                                     <button class="text-primary hover:text-primary/80">
                                         <i class="fas fa-edit"></i>
@@ -248,7 +248,7 @@ if ($result) {
                                 <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
                                     <div>
                                         <h4 class="text-sm font-medium text-gray-900">Points Redemption</h4>
-                                        <p class="text-sm text-gray-500">100 points = $5 discount</p>
+                                        <p class="text-sm text-gray-500">100 points = 5 discount</p>
                                     </div>
                                     <button class="text-primary hover:text-primary/80">
                                         <i class="fas fa-edit"></i>
@@ -287,7 +287,7 @@ if ($result) {
                                     </div>
                                     <div class="text-right">
                                         <p class="text-sm font-medium text-gray-900"><?php echo number_format($member['points']); ?> points</p>
-                                        <p class="text-xs text-gray-500">$<?php echo number_format($member['points'] * 0.05, 2); ?> spent</p>
+                                        <p class="text-xs text-gray-500"><?php echo number_format($member['points'] * 0.05, 2); ?> spent</p>
                                     </div>
                                 </div>
                                 <?php endforeach; ?>

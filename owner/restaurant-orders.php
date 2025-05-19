@@ -178,11 +178,11 @@ if ($searchOrder > 0) {
                                         </div>
                                         <div class="flex justify-between">
                                             <span class="text-gray-600">Price:</span>
-                                            <span class="font-medium">$<?php echo number_format($order['price'], 2); ?></span>
+                                            <span class="font-medium"><?php echo number_format($order['price'], 2); ?></span>
                                         </div>
                                         <div class="flex justify-between">
                                             <span class="text-gray-600">Total:</span>
-                                            <span class="font-medium text-primary">$<?php echo number_format($order['total'], 2); ?></span>
+                                            <span class="font-medium text-primary"><?php echo number_format($order['total'], 2); ?></span>
                                         </div>
                                     </div>
                                     <div class="mt-4 flex justify-end space-x-3">

@@ -72,6 +72,14 @@ if ($stmt = $conn->prepare($sql)) {
     }
     $stmt->close();
 }
+
+// Pagination for feedbacks
+$feedbacksPerPage = 3;
+$page = isset($_GET['page']) && is_numeric($_GET['page']) ? (int)$_GET['page'] : 1;
+$totalFeedbacks = count($feedbacks);
+$totalPages = ceil($totalFeedbacks / $feedbacksPerPage);
+$startIndex = ($page - 1) * $feedbacksPerPage;
+$paginatedFeedbacks = array_slice($feedbacks, $startIndex, $feedbacksPerPage);
 ?>
 
 <!DOCTYPE html>
@@ -215,8 +223,8 @@ if ($stmt = $conn->prepare($sql)) {
                 <div>
                     <h3 class="text-lg font-semibold mb-4">Your Past Feedback</h3>
                     <div class="space-y-4">
-                        <?php if (count($feedbacks) > 0): ?>
-                            <?php foreach ($feedbacks as $fb): ?>
+                        <?php if (count($paginatedFeedbacks) > 0): ?>
+                            <?php foreach ($paginatedFeedbacks as $fb): ?>
                                 <div class="bg-white rounded-lg shadow p-6">
                                     <div class="flex justify-between items-start mb-4">
                                         <div>
@@ -241,6 +249,14 @@ if ($stmt = $conn->prepare($sql)) {
                             <div class="text-gray-400 text-center">No feedback yet.</div>
                         <?php endif; ?>
                     </div>
+                    <!-- Pagination -->
+                    <?php if ($totalPages > 1): ?>
+                    <div class="flex justify-center mt-6 space-x-2">
+                        <?php for ($i = 1; $i <= $totalPages; $i++): ?>
+                            <a href="?page=<?php echo $i; ?>" class="px-3 py-1 rounded-lg <?php echo $i == $page ? 'bg-primary text-white' : 'border hover:bg-gray-50'; ?>"><?php echo $i; ?></a>
+                        <?php endfor; ?>
+                    </div>
+                    <?php endif; ?>
                 </div>
             </main>
         </div>
