@@ -1,4 +1,5 @@
 <?php
+session_start();
 // Database connection
 include_once __DIR__ . '/auth/connection.php';
 

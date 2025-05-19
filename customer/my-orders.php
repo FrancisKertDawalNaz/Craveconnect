@@ -146,7 +146,7 @@ $userFullName = $_SESSION['fullname'];
                                                 <h4 class="text-sm font-medium text-gray-900"><?php echo htmlspecialchars($order['item_name']); ?></h4>
                                             </div>
                                             <div class="text-right">
-                                                <p class="text-sm font-medium text-gray-900">$<?php echo number_format($order['total'], 2); ?></p>
+                                                <p class="text-sm font-medium text-gray-900"><?php echo number_format($order['total'], 2); ?></p>
                                                 <p class="text-sm text-gray-500">Qty: <?php echo $order['quantity']; ?></p>
                                             </div>
                                         </div>
@@ -156,7 +156,7 @@ $userFullName = $_SESSION['fullname'];
                                     <div class="border-t pt-4">
                                         <div class="flex justify-between items-center mb-2">
                                             <span class="text-sm text-gray-600">Total</span>
-                                            <span class="text-sm font-medium text-gray-900">$<?php echo number_format($order['total'], 2); ?></span>
+                                            <span class="text-sm font-medium text-gray-900"><?php echo number_format($order['total'], 2); ?></span>
                                         </div>
                                     </div>
                                 </div>

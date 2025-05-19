@@ -1,3 +1,57 @@
+<?php
+include_once __DIR__ . '/auth/connection.php';
+
+// --- FEEDBACK STATS ---
+// Average Rating
+$avgRating = 0;
+$sql = "SELECT AVG(rating) as avg_rating FROM feedback";
+$result = $conn->query($sql);
+if ($result && $row = $result->fetch_assoc()) {
+    $avgRating = round($row['avg_rating'], 2);
+}
+
+// Total Reviews
+$totalReviews = 0;
+$sql = "SELECT COUNT(id) as total FROM feedback";
+$result = $conn->query($sql);
+if ($result && $row = $result->fetch_assoc()) {
+    $totalReviews = (int)$row['total'];
+}
+
+// Pending Responses (orders with order_status = 'Pending')
+$pendingResponses = 0;
+$sql = "SELECT COUNT(id) as total FROM orders WHERE order_status = 'Pending'";
+$result = $conn->query($sql);
+if ($result && $row = $result->fetch_assoc()) {
+    $pendingResponses = (int)$row['total'];
+}
+
+// Rating Distribution
+$ratingCounts = [5 => 0, 4 => 0, 3 => 0, 2 => 0, 1 => 0];
+$sql = "SELECT rating, COUNT(*) as cnt FROM feedback GROUP BY rating";
+$result = $conn->query($sql);
+$totalForDist = 0;
+if ($result) {
+    while ($row = $result->fetch_assoc()) {
+        $r = (int)$row['rating'];
+        if (isset($ratingCounts[$r])) {
+            $ratingCounts[$r] = (int)$row['cnt'];
+            $totalForDist += (int)$row['cnt'];
+        }
+    }
+}
+
+// Fetch recent reviews (latest 3)
+$recentReviews = [];
+$sql = "SELECT f.*, u.fullname FROM feedback f LEFT JOIN users u ON f.user_id = u.id ORDER BY f.id DESC LIMIT 3";
+$result = $conn->query($sql);
+if ($result) {
+    while ($row = $result->fetch_assoc()) {
+        $recentReviews[] = $row;
+    }
+}
+?>
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -14,6 +68,10 @@
                     }
                 }
             }
+        }
+
+        function exportFeedback() {
+            window.location.href = 'auth/export_feedback.php';
         }
     </script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -82,7 +140,7 @@
                             <option>Last 7 Days</option>
                             <option>Today</option>
                         </select>
-                        <button class="bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary/90 flex items-center">
+                        <button class="bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary/90 flex items-center" onclick="exportFeedback()">
                             <i class="fas fa-download mr-2"></i>
                             Export Feedback
                         </button>
@@ -98,13 +156,15 @@
                         <div class="flex items-center justify-between">
                             <div>
                                 <p class="text-sm text-gray-500">Average Rating</p>
-                                <h3 class="text-2xl font-semibold text-gray-800">4.5</h3>
+                                <h3 class="text-2xl font-semibold text-gray-800"><?php echo $avgRating; ?></h3>
                                 <div class="flex items-center text-yellow-400">
-                                    <i class="fas fa-star"></i>
-                                    <i class="fas fa-star"></i>
-                                    <i class="fas fa-star"></i>
-                                    <i class="fas fa-star"></i>
-                                    <i class="fas fa-star-half-alt"></i>
+                                    <?php
+                                    $fullStars = floor($avgRating);
+                                    $halfStar = ($avgRating - $fullStars) >= 0.5;
+                                    for ($i = 0; $i < $fullStars; $i++) echo '<i class="fas fa-star"></i>';
+                                    if ($halfStar) echo '<i class="fas fa-star-half-alt"></i>';
+                                    for ($i = $fullStars + $halfStar; $i < 5; $i++) echo '<i class="far fa-star"></i>';
+                                    ?>
                                 </div>
                             </div>
                             <div class="p-3 bg-yellow-100 rounded-full">
@@ -116,8 +176,8 @@
                         <div class="flex items-center justify-between">
                             <div>
                                 <p class="text-sm text-gray-500">Total Reviews</p>
-                                <h3 class="text-2xl font-semibold text-gray-800">1,234</h3>
-                                <p class="text-sm text-green-600">+12% from last month</p>
+                                <h3 class="text-2xl font-semibold text-gray-800"><?php echo number_format($totalReviews); ?></h3>
+                                <!-- Optionally add a trend indicator here -->
                             </div>
                             <div class="p-3 bg-blue-100 rounded-full">
                                 <i class="fas fa-comments text-blue-500 text-xl"></i>
@@ -127,21 +187,9 @@
                     <div class="bg-white rounded-lg shadow p-4">
                         <div class="flex items-center justify-between">
                             <div>
-                                <p class="text-sm text-gray-500">Response Rate</p>
-                                <h3 class="text-2xl font-semibold text-gray-800">98%</h3>
-                                <p class="text-sm text-green-600">+5% from last month</p>
-                            </div>
-                            <div class="p-3 bg-green-100 rounded-full">
-                                <i class="fas fa-reply text-green-500 text-xl"></i>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="bg-white rounded-lg shadow p-4">
-                        <div class="flex items-center justify-between">
-                            <div>
                                 <p class="text-sm text-gray-500">Pending Responses</p>
-                                <h3 class="text-2xl font-semibold text-gray-800">3</h3>
-                                <p class="text-sm text-red-600">Requires attention</p>
+                                <h3 class="text-2xl font-semibold text-gray-800"><?php echo $pendingResponses; ?></h3>
+                                <p class="text-sm text-red-600"><?php echo $pendingResponses > 0 ? 'Requires attention' : 'All caught up!'; ?></p>
                             </div>
                             <div class="p-3 bg-red-100 rounded-full">
                                 <i class="fas fa-exclamation-circle text-red-500 text-xl"></i>
@@ -157,46 +205,20 @@
                     </div>
                     <div class="p-6">
                         <div class="space-y-4">
-                            <!-- 5 Stars -->
+                            <?php
+                            $total = $totalForDist > 0 ? $totalForDist : 1;
+                            for ($star = 5; $star >= 1; $star--):
+                                $count = $ratingCounts[$star];
+                                $percent = round(($count / $total) * 100);
+                            ?>
                             <div class="flex items-center">
-                                <div class="w-16 text-sm text-gray-600">5 Stars</div>
+                                <div class="w-16 text-sm text-gray-600"><?php echo $star; ?> Star<?php echo $star > 1 ? 's' : ''; ?></div>
                                 <div class="flex-1 h-4 bg-gray-200 rounded-full overflow-hidden">
-                                    <div class="h-full bg-yellow-400" style="width: 75%"></div>
+                                    <div class="h-full bg-yellow-400" style="width: <?php echo $percent; ?>%"></div>
                                 </div>
-                                <div class="w-16 text-sm text-gray-600 text-right">750</div>
+                                <div class="w-16 text-sm text-gray-600 text-right"><?php echo $count; ?></div>
                             </div>
-                            <!-- 4 Stars -->
-                            <div class="flex items-center">
-                                <div class="w-16 text-sm text-gray-600">4 Stars</div>
-                                <div class="flex-1 h-4 bg-gray-200 rounded-full overflow-hidden">
-                                    <div class="h-full bg-yellow-400" style="width: 15%"></div>
-                                </div>
-                                <div class="w-16 text-sm text-gray-600 text-right">150</div>
-                            </div>
-                            <!-- 3 Stars -->
-                            <div class="flex items-center">
-                                <div class="w-16 text-sm text-gray-600">3 Stars</div>
-                                <div class="flex-1 h-4 bg-gray-200 rounded-full overflow-hidden">
-                                    <div class="h-full bg-yellow-400" style="width: 5%"></div>
-                                </div>
-                                <div class="w-16 text-sm text-gray-600 text-right">50</div>
-                            </div>
-                            <!-- 2 Stars -->
-                            <div class="flex items-center">
-                                <div class="w-16 text-sm text-gray-600">2 Stars</div>
-                                <div class="flex-1 h-4 bg-gray-200 rounded-full overflow-hidden">
-                                    <div class="h-full bg-yellow-400" style="width: 3%"></div>
-                                </div>
-                                <div class="w-16 text-sm text-gray-600 text-right">30</div>
-                            </div>
-                            <!-- 1 Star -->
-                            <div class="flex items-center">
-                                <div class="w-16 text-sm text-gray-600">1 Star</div>
-                                <div class="flex-1 h-4 bg-gray-200 rounded-full overflow-hidden">
-                                    <div class="h-full bg-yellow-400" style="width: 2%"></div>
-                                </div>
-                                <div class="w-16 text-sm text-gray-600 text-right">20</div>
-                            </div>
+                            <?php endfor; ?>
                         </div>
                     </div>
                 </div>
@@ -208,29 +230,30 @@
                     </div>
                     <div class="p-6">
                         <div class="space-y-6">
-                            <!-- Review 1 -->
+                            <?php foreach ($recentReviews as $review): ?>
                             <div class="border-b pb-6">
                                 <div class="flex items-center justify-between mb-4">
                                     <div class="flex items-center space-x-4">
-                                        <img src="https://ui-avatars.com/api/?name=Sarah+Wilson&background=E63946&color=fff" 
-                                            alt="Sarah Wilson" 
+                                        <img src="https://ui-avatars.com/api/?name=<?php echo urlencode($review['fullname'] ?? 'Anonymous'); ?>&background=E63946&color=fff" 
+                                            alt="<?php echo htmlspecialchars($review['fullname'] ?? 'Anonymous'); ?>" 
                                             class="w-10 h-10 rounded-full">
                                         <div>
-                                            <h4 class="text-sm font-medium text-gray-900">Sarah Wilson</h4>
-                                            <p class="text-xs text-gray-500">March 15, 2024</p>
+                                            <h4 class="text-sm font-medium text-gray-900"><?php echo htmlspecialchars($review['fullname'] ?? 'Anonymous'); ?></h4>
+                                            <p class="text-xs text-gray-500"><?php echo date('F j, Y', strtotime($review['created_at'])); ?></p>
                                         </div>
                                     </div>
                                     <div class="flex items-center text-yellow-400">
-                                        <i class="fas fa-star"></i>
-                                        <i class="fas fa-star"></i>
-                                        <i class="fas fa-star"></i>
-                                        <i class="fas fa-star"></i>
-                                        <i class="fas fa-star"></i>
+                                        <?php
+                                        $stars = (int)$review['rating'];
+                                        for ($i = 1; $i <= 5; $i++) {
+                                            if ($i <= $stars) echo '<i class="fas fa-star"></i>';
+                                            else echo '<i class="far fa-star"></i>';
+                                        }
+                                        ?>
                                     </div>
                                 </div>
                                 <p class="text-sm text-gray-600 mb-4">
-                                    "The food was absolutely amazing! The service was quick and the staff was very friendly. 
-                                    I especially loved the Margherita pizza and the tiramisu for dessert. Will definitely come back!"
+                                    <?php echo htmlspecialchars($review['comments']); ?>
                                 </p>
                                 <div class="flex items-center space-x-4">
                                     <button class="text-primary hover:text-primary/80 text-sm font-medium">
@@ -243,78 +266,10 @@
                                     </button>
                                 </div>
                             </div>
-
-                            <!-- Review 2 -->
-                            <div class="border-b pb-6">
-                                <div class="flex items-center justify-between mb-4">
-                                    <div class="flex items-center space-x-4">
-                                        <img src="https://ui-avatars.com/api/?name=Michael+Brown&background=E63946&color=fff" 
-                                            alt="Michael Brown" 
-                                            class="w-10 h-10 rounded-full">
-                                        <div>
-                                            <h4 class="text-sm font-medium text-gray-900">Michael Brown</h4>
-                                            <p class="text-xs text-gray-500">March 14, 2024</p>
-                                        </div>
-                                    </div>
-                                    <div class="flex items-center text-yellow-400">
-                                        <i class="fas fa-star"></i>
-                                        <i class="fas fa-star"></i>
-                                        <i class="fas fa-star"></i>
-                                        <i class="fas fa-star"></i>
-                                        <i class="far fa-star"></i>
-                                    </div>
-                                </div>
-                                <p class="text-sm text-gray-600 mb-4">
-                                    "Great food and atmosphere. The only reason for 4 stars is that the wait time was a bit longer than expected. 
-                                    Otherwise, everything was perfect!"
-                                </p>
-                                <div class="flex items-center space-x-4">
-                                    <button class="text-primary hover:text-primary/80 text-sm font-medium">
-                                        <i class="fas fa-reply mr-1"></i>
-                                        Reply
-                                    </button>
-                                    <button class="text-gray-500 hover:text-gray-700 text-sm font-medium">
-                                        <i class="fas fa-flag mr-1"></i>
-                                        Flag
-                                    </button>
-                                </div>
-                            </div>
-
-                            <!-- Review 3 -->
-                            <div>
-                                <div class="flex items-center justify-between mb-4">
-                                    <div class="flex items-center space-x-4">
-                                        <img src="https://ui-avatars.com/api/?name=Emily+Davis&background=E63946&color=fff" 
-                                            alt="Emily Davis" 
-                                            class="w-10 h-10 rounded-full">
-                                        <div>
-                                            <h4 class="text-sm font-medium text-gray-900">Emily Davis</h4>
-                                            <p class="text-xs text-gray-500">March 13, 2024</p>
-                                        </div>
-                                    </div>
-                                    <div class="flex items-center text-yellow-400">
-                                        <i class="fas fa-star"></i>
-                                        <i class="fas fa-star"></i>
-                                        <i class="fas fa-star"></i>
-                                        <i class="fas fa-star"></i>
-                                        <i class="fas fa-star-half-alt"></i>
-                                    </div>
-                                </div>
-                                <p class="text-sm text-gray-600 mb-4">
-                                    "The pasta dishes are incredible! The portion sizes are generous and the flavors are amazing. 
-                                    The staff was attentive and the ambiance was perfect for a date night."
-                                </p>
-                                <div class="flex items-center space-x-4">
-                                    <button class="text-primary hover:text-primary/80 text-sm font-medium">
-                                        <i class="fas fa-reply mr-1"></i>
-                                        Reply
-                                    </button>
-                                    <button class="text-gray-500 hover:text-gray-700 text-sm font-medium">
-                                        <i class="fas fa-flag mr-1"></i>
-                                        Flag
-                                    </button>
-                                </div>
-                            </div>
+                            <?php endforeach; ?>
+                            <?php if (empty($recentReviews)): ?>
+                            <div class="text-gray-400 text-center py-8">No reviews yet.</div>
+                            <?php endif; ?>
                         </div>
                     </div>
                 </div>
@@ -322,4 +277,4 @@
         </div>
     </div>
 </body>
-</html> 
+</html>

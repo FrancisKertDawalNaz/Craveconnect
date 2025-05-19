@@ -103,7 +103,7 @@ if ($result && $result->num_rows > 0) {
                             <img src="<?php echo '../owner/uploads/' . htmlspecialchars($item['image_url']); ?>" alt="<?php echo htmlspecialchars($item['item_name']); ?>" class="rounded mb-4 w-full h-40 object-cover">
                             <h3 class="text-lg font-semibold mb-2"><?php echo htmlspecialchars($item['item_name']); ?></h3>
                             <p class="text-gray-600 mb-2"><?php echo htmlspecialchars($item['description']); ?></p>
-                            <p class="text-primary font-bold">$<?php echo number_format($item['price'], 2); ?></p>
+                            <p class="text-primary font-bold"><?php echo number_format($item['price'], 2); ?></p>
                             <button onclick="openModal(<?php echo $idx; ?>)" class="mt-2 w-full bg-primary text-white py-2 rounded hover:bg-red-700 transition">Add to Cart</button>
                         </div>
                     <?php endforeach; ?>
@@ -146,7 +146,7 @@ if ($result && $result->num_rows > 0) {
         modalImage.src = '../owner/uploads/' + item.image_url;
         modalImage.alt = item.item_name;
         modalDesc.textContent = item.description;
-        modalPrice.textContent = `$${parseFloat(item.price).toFixed(2)}`;
+        modalPrice.textContent = `${parseFloat(item.price).toFixed(2)}`;
         modalQty.value = 1;
         modal.classList.remove('hidden');
     }

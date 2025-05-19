@@ -1,4 +1,5 @@
 <?php
+session_start();
 include_once __DIR__ . '/auth/connection.php';
 // Total Revenue (all time)
 $totalRevenue = 0;
