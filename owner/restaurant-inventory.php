@@ -1,3 +1,38 @@
+<?php
+// Database connection
+include_once __DIR__ . '/auth/connection.php';
+
+// Fetch inventory items from the database
+$inventory_items = [];
+$sql = "SELECT * FROM inventory_items ORDER BY last_updated DESC";
+$result = $conn->query($sql);
+if ($result && $result->num_rows > 0) {
+    while ($row = $result->fetch_assoc()) {
+        $inventory_items[] = $row;
+    }
+}
+
+// Quick stats calculations
+$total_items = count($inventory_items);
+$low_stock = 0;
+$out_of_stock = 0;
+$total_value = 0;
+foreach ($inventory_items as $item) {
+    if ($item['current_stock'] <= 0) {
+        $out_of_stock++;
+    } else if ($item['current_stock'] <= $item['min_stock']) {
+        $low_stock++;
+    }
+    $total_value += $item['current_stock'] * $item['unit_cost'];
+}
+
+// Pagination logic
+$items_per_page = 3;
+$page = isset($_GET['page']) && is_numeric($_GET['page']) ? (int)$_GET['page'] : 1;
+$total_pages = ceil($total_items / $items_per_page);
+$start_index = ($page - 1) * $items_per_page;
+$paginated_items = array_slice($inventory_items, $start_index, $items_per_page);
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -77,7 +112,7 @@
                     <h2 class="text-xl font-semibold text-gray-800">Inventory Management</h2>
                     <div class="flex items-center space-x-4">
                         <div class="relative">
-                            <input type="text" placeholder="Search inventory..." 
+                            <input type="text" id="inventorySearch" placeholder="Search inventory..." 
                                 class="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent">
                             <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
                         </div>
@@ -97,7 +132,7 @@
                         <div class="flex items-center justify-between">
                             <div>
                                 <p class="text-sm text-gray-500">Total Items</p>
-                                <h3 class="text-2xl font-semibold text-gray-800">156</h3>
+                                <h3 class="text-2xl font-semibold text-gray-800"><?php echo $total_items; ?></h3>
                             </div>
                             <div class="p-3 bg-blue-100 rounded-full">
                                 <i class="fas fa-box text-blue-500 text-xl"></i>
@@ -108,7 +143,7 @@
                         <div class="flex items-center justify-between">
                             <div>
                                 <p class="text-sm text-gray-500">Low Stock Items</p>
-                                <h3 class="text-2xl font-semibold text-yellow-600">12</h3>
+                                <h3 class="text-2xl font-semibold text-yellow-600"><?php echo $low_stock; ?></h3>
                             </div>
                             <div class="p-3 bg-yellow-100 rounded-full">
                                 <i class="fas fa-exclamation-triangle text-yellow-500 text-xl"></i>
@@ -119,7 +154,7 @@
                         <div class="flex items-center justify-between">
                             <div>
                                 <p class="text-sm text-gray-500">Out of Stock</p>
-                                <h3 class="text-2xl font-semibold text-red-600">3</h3>
+                                <h3 class="text-2xl font-semibold text-red-600"><?php echo $out_of_stock; ?></h3>
                             </div>
                             <div class="p-3 bg-red-100 rounded-full">
                                 <i class="fas fa-times-circle text-red-500 text-xl"></i>
@@ -130,7 +165,7 @@
                         <div class="flex items-center justify-between">
                             <div>
                                 <p class="text-sm text-gray-500">Total Value</p>
-                                <h3 class="text-2xl font-semibold text-gray-800">$12,450</h3>
+                                <h3 class="text-2xl font-semibold text-gray-800">$<?php echo number_format($total_value, 2); ?></h3>
                             </div>
                             <div class="p-3 bg-green-100 rounded-full">
                                 <i class="fas fa-dollar-sign text-green-500 text-xl"></i>
@@ -143,10 +178,6 @@
                 <div class="mb-6">
                     <div class="flex space-x-4 overflow-x-auto pb-2">
                         <button class="px-4 py-2 bg-primary text-white rounded-lg">All Items</button>
-                        <button class="px-4 py-2 bg-white text-gray-700 rounded-lg hover:bg-gray-50">Ingredients</button>
-                        <button class="px-4 py-2 bg-white text-gray-700 rounded-lg hover:bg-gray-50">Supplies</button>
-                        <button class="px-4 py-2 bg-white text-gray-700 rounded-lg hover:bg-gray-50">Equipment</button>
-                        <button class="px-4 py-2 bg-white text-gray-700 rounded-lg hover:bg-gray-50">Packaging</button>
                     </div>
                 </div>
 
@@ -156,6 +187,7 @@
                         <thead class="bg-gray-50">
                             <tr>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Item</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">SKU</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Current Stock</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Unit</th>
@@ -165,110 +197,56 @@
                             </tr>
                         </thead>
                         <tbody class="bg-white divide-y divide-gray-200">
-                            <!-- Low Stock Item -->
-                            <tr>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <div class="flex items-center">
-                                        <div class="flex-shrink-0 h-10 w-10">
-                                            <img class="h-10 w-10 rounded-full object-cover" src="https://images.unsplash.com/photo-1542838132-92c53300491e?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1074&q=80" alt="Tomatoes">
-                                        </div>
-                                        <div class="ml-4">
-                                            <div class="text-sm font-medium text-gray-900">Fresh Tomatoes</div>
-                                            <div class="text-sm text-gray-500">SKU: TOM-001</div>
-                                        </div>
-                                    </div>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <span class="text-sm text-gray-900">Ingredients</span>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <div class="text-sm text-gray-900">5</div>
-                                    <div class="text-xs text-gray-500">Min: 10</div>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">kg</td>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">
-                                        Low Stock
-                                    </span>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                    March 15, 2024
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                    <button class="text-primary hover:text-primary/80 mr-3">Edit</button>
-                                    <button class="text-primary hover:text-primary/80">Restock</button>
-                                </td>
-                            </tr>
-
-                            <!-- Out of Stock Item -->
-                            <tr>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <div class="flex items-center">
-                                        <div class="flex-shrink-0 h-10 w-10">
-                                            <img class="h-10 w-10 rounded-full object-cover" src="https://images.unsplash.com/photo-1600271886742-f049cd451bba?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=687&q=80" alt="Olive Oil">
-                                        </div>
-                                        <div class="ml-4">
-                                            <div class="text-sm font-medium text-gray-900">Extra Virgin Olive Oil</div>
-                                            <div class="text-sm text-gray-500">SKU: OIL-002</div>
-                                        </div>
-                                    </div>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <span class="text-sm text-gray-900">Ingredients</span>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <div class="text-sm text-gray-900">0</div>
-                                    <div class="text-xs text-gray-500">Min: 2</div>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">L</td>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">
-                                        Out of Stock
-                                    </span>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                    March 14, 2024
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                    <button class="text-primary hover:text-primary/80 mr-3">Edit</button>
-                                    <button class="text-primary hover:text-primary/80">Restock</button>
-                                </td>
-                            </tr>
-
-                            <!-- Normal Stock Item -->
-                            <tr>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <div class="flex items-center">
-                                        <div class="flex-shrink-0 h-10 w-10">
-                                            <img class="h-10 w-10 rounded-full object-cover" src="https://images.unsplash.com/photo-1600271886742-f049cd451bba?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=687&q=80" alt="Flour">
-                                        </div>
-                                        <div class="ml-4">
-                                            <div class="text-sm font-medium text-gray-900">All-Purpose Flour</div>
-                                            <div class="text-sm text-gray-500">SKU: FLO-003</div>
-                                        </div>
-                                    </div>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <span class="text-sm text-gray-900">Ingredients</span>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <div class="text-sm text-gray-900">25</div>
-                                    <div class="text-xs text-gray-500">Min: 10</div>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">kg</td>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-                                        In Stock
-                                    </span>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                    March 15, 2024
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                    <button class="text-primary hover:text-primary/80 mr-3">Edit</button>
-                                    <button class="text-primary hover:text-primary/80">Restock</button>
-                                </td>
-                            </tr>
+                            <?php if (!empty($paginated_items)): ?>
+                                <?php foreach ($paginated_items as $item): ?>
+                                    <tr>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <div class="flex items-center">
+                                                <div class="flex-shrink-0 h-10 w-10">
+                                                    <img class="h-10 w-10 rounded-full object-cover" src="<?php echo !empty($item['image_url']) ? 'uploads/' . htmlspecialchars($item['image_url']) : 'https://via.placeholder.com/100x100?text=No+Image'; ?>" alt="<?php echo htmlspecialchars($item['item_name']); ?>">
+                                                </div>
+                                                <div class="ml-4">
+                                                    <div class="text-sm font-medium text-gray-900"><?php echo htmlspecialchars($item['item_name']); ?></div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500"><?php echo htmlspecialchars($item['sku']); ?></td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900"><?php echo htmlspecialchars($item['category']); ?></td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <div class="text-sm text-gray-900"><?php echo htmlspecialchars($item['current_stock']); ?></div>
+                                            <div class="text-xs text-gray-500">Min: <?php echo htmlspecialchars($item['min_stock']); ?></div>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500"><?php echo htmlspecialchars($item['unit']); ?></td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <?php
+                                                $status = 'In Stock';
+                                                $statusClass = 'bg-green-100 text-green-800';
+                                                if ($item['current_stock'] <= 0) {
+                                                    $status = 'Out of Stock';
+                                                    $statusClass = 'bg-red-100 text-red-800';
+                                                } else if ($item['current_stock'] <= $item['min_stock']) {
+                                                    $status = 'Low Stock';
+                                                    $statusClass = 'bg-yellow-100 text-yellow-800';
+                                                }
+                                            ?>
+                                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full <?php echo $statusClass; ?>">
+                                                <?php echo $status; ?>
+                                            </span>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                            <?php echo date('M d, Y', strtotime($item['last_updated'])); ?>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                            <button class="text-primary hover:text-primary/80 mr-3">Edit</button>
+                                            <button class="text-primary hover:text-primary/80">Restock</button>
+                                        </td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            <?php else: ?>
+                                <tr>
+                                    <td colspan="8" class="py-4 text-center text-gray-400">No inventory items found.</td>
+                                </tr>
+                            <?php endif; ?>
                         </tbody>
                     </table>
                 </div>
@@ -276,13 +254,15 @@
                 <!-- Pagination -->
                 <div class="mt-6 flex justify-center">
                     <nav class="flex items-center space-x-2">
-                        <button class="px-3 py-1 rounded-lg border hover:bg-gray-50">
+                        <button class="px-3 py-1 rounded-lg border hover:bg-gray-50" <?php if ($page <= 1) echo 'disabled'; ?> onclick="window.location.href='?page=<?php echo max(1, $page-1); ?>'">
                             <i class="fas fa-chevron-left"></i>
                         </button>
-                        <button class="px-3 py-1 rounded-lg bg-primary text-white">1</button>
-                        <button class="px-3 py-1 rounded-lg border hover:bg-gray-50">2</button>
-                        <button class="px-3 py-1 rounded-lg border hover:bg-gray-50">3</button>
-                        <button class="px-3 py-1 rounded-lg border hover:bg-gray-50">
+                        <?php for ($i = 1; $i <= $total_pages; $i++): ?>
+                            <button class="px-3 py-1 rounded-lg <?php echo $i == $page ? 'bg-primary text-white' : 'border hover:bg-gray-50'; ?>" onclick="window.location.href='?page=<?php echo $i; ?>'">
+                                <?php echo $i; ?>
+                            </button>
+                        <?php endfor; ?>
+                        <button class="px-3 py-1 rounded-lg border hover:bg-gray-50" <?php if ($page >= $total_pages) echo 'disabled'; ?> onclick="window.location.href='?page=<?php echo min($total_pages, $page+1); ?>'">
                             <i class="fas fa-chevron-right"></i>
                         </button>
                     </nav>
@@ -306,22 +286,22 @@
 
             <!-- Modal Content -->
             <div class="p-6 overflow-y-auto">
-                <form class="space-y-6">
+                <form class="space-y-6" id="addItemForm" method="POST" action="auth/insert_inventory.php" enctype="multipart/form-data">
                     <!-- Basic Information -->
                     <div class="space-y-4">
                         <h4 class="text-sm font-medium text-gray-700">Basic Information</h4>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-2">Item Name</label>
-                                <input type="text" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" required>
+                                <input type="text" name="item_name" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" required>
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-2">SKU</label>
-                                <input type="text" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" required>
+                                <input type="text" name="sku" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" required>
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-2">Category</label>
-                                <select class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" required>
+                                <select name="category" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" required>
                                     <option value="">Select Category</option>
                                     <option value="ingredients">Ingredients</option>
                                     <option value="supplies">Supplies</option>
@@ -331,7 +311,7 @@
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-2">Unit of Measurement</label>
-                                <select class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" required>
+                                <select name="unit" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" required>
                                     <option value="">Select Unit</option>
                                     <option value="kg">Kilograms (kg)</option>
                                     <option value="g">Grams (g)</option>
@@ -351,15 +331,15 @@
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-2">Current Stock</label>
-                                <input type="number" min="0" step="0.01" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" required>
+                                <input type="number" name="current_stock" min="0" step="0.01" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" required>
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-2">Minimum Stock Level</label>
-                                <input type="number" min="0" step="0.01" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" required>
+                                <input type="number" name="min_stock" min="0" step="0.01" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" required>
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-2">Reorder Point</label>
-                                <input type="number" min="0" step="0.01" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" required>
+                                <input type="number" name="reorder_point" min="0" step="0.01" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" required>
                             </div>
                         </div>
                     </div>
@@ -372,12 +352,12 @@
                                 <label class="block text-sm font-medium text-gray-700 mb-2">Unit Cost</label>
                                 <div class="relative">
                                     <span class="absolute left-3 top-2 text-gray-500">$</span>
-                                    <input type="number" min="0" step="0.01" class="w-full pl-7 pr-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" required>
+                                    <input type="number" name="unit_cost" min="0" step="0.01" class="w-full pl-7 pr-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" required>
                                 </div>
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-2">Supplier</label>
-                                <input type="text" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent">
+                                <input type="text" name="supplier" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent">
                             </div>
                         </div>
                     </div>
@@ -387,11 +367,11 @@
                         <h4 class="text-sm font-medium text-gray-700">Additional Information</h4>
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">Description</label>
-                            <textarea rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"></textarea>
+                            <textarea name="description" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"></textarea>
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">Location in Storage</label>
-                            <input type="text" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" placeholder="e.g., Shelf A3, Box 2">
+                            <input type="text" name="location" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" placeholder="e.g., Shelf A3, Box 2">
                         </div>
                     </div>
 
@@ -404,7 +384,7 @@
                                 <div class="text-sm text-gray-500">
                                     <label for="item-image" class="relative cursor-pointer text-primary hover:text-primary/80">
                                         <span>Upload an image</span>
-                                        <input type="file" id="item-image" class="sr-only" accept="image/*">
+                                        <input type="file" id="item-image" name="image" class="sr-only" accept="image/*">
                                     </label>
                                     <p>or drag and drop</p>
                                 </div>
@@ -412,23 +392,20 @@
                             </div>
                         </div>
                     </div>
+                    <div class="flex justify-end space-x-3 pt-6">
+                        <button type="button" onclick="closeAddItemModal()" class="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200">
+                            Cancel
+                        </button>
+                        <button type="submit" class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90">
+                            Add Item
+                        </button>
+                    </div>
                 </form>
-            </div>
-
-            <!-- Modal Footer -->
-            <div class="p-6 border-t flex-shrink-0">
-                <div class="flex justify-end space-x-3">
-                    <button onclick="closeAddItemModal()" class="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200">
-                        Cancel
-                    </button>
-                    <button onclick="saveNewItem()" class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90">
-                        Add Item
-                    </button>
-                </div>
             </div>
         </div>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
         function showAddItemModal() {
             document.getElementById('addItemModal').classList.remove('hidden');
@@ -440,13 +417,34 @@
             document.getElementById('addItemModal').classList.remove('flex');
         }
 
-        function saveNewItem() {
-            // Add your save logic here
-            closeAddItemModal();
-        }
-
         // Add event listener to the "Add New Item" button
-        document.querySelector('button[onclick="showAddItemModal()"]').addEventListener('click', showAddItemModal);
+        document.querySelector('button[onclick="showAddItemModal()"]')?.addEventListener('click', showAddItemModal);
+
+        // Inventory search filter
+        document.getElementById('inventorySearch').addEventListener('input', function() {
+            const search = this.value.toLowerCase();
+            const rows = document.querySelectorAll('tbody tr');
+            rows.forEach(row => {
+                const text = row.textContent.toLowerCase();
+                if (text.includes(search)) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+        });
     </script>
+    <?php
+    // SweetAlert feedback for add item
+    if (session_status() === PHP_SESSION_NONE) session_start();
+    if (isset($_SESSION['inventory_success'])) {
+        echo "<script>Swal.fire({icon: 'success', title: 'Success', text: '" . $_SESSION['inventory_success'] . "'});</script>";
+        unset($_SESSION['inventory_success']);
+    }
+    if (isset($_SESSION['inventory_error'])) {
+        echo "<script>Swal.fire({icon: 'error', title: 'Error', text: '" . $_SESSION['inventory_error'] . "'});</script>";
+        unset($_SESSION['inventory_error']);
+    }
+    ?>
 </body>
-</html> 
+</html>

@@ -1,3 +1,113 @@
+<?php
+include_once __DIR__ . '/auth/connection.php';
+// Total Revenue (all time)
+$totalRevenue = 0;
+$sql = "SELECT SUM(total) FROM orders";
+if ($stmt = $conn->prepare($sql)) {
+    $stmt->execute();
+    $stmt->bind_result($totalRevenue);
+    $stmt->fetch();
+    $stmt->close();
+}
+if ($totalRevenue === null) $totalRevenue = 0;
+
+// Total Orders (all time)
+$totalOrders = 0;
+$sql = "SELECT COUNT(*) FROM orders";
+if ($stmt = $conn->prepare($sql)) {
+    $stmt->execute();
+    $stmt->bind_result($totalOrders);
+    $stmt->fetch();
+    $stmt->close();
+}
+
+// Average Order Value (all time)
+$avgOrderValue = 0;
+$sql = "SELECT AVG(total) FROM orders";
+if ($stmt = $conn->prepare($sql)) {
+    $stmt->execute();
+    $stmt->bind_result($avgOrderValue);
+    $stmt->fetch();
+    $stmt->close();
+}
+if ($avgOrderValue === null) $avgOrderValue = 0;
+
+// New Customers (last 30 days)
+$newCustomers = 0;
+$sql = "SELECT COUNT(*) FROM users WHERE DATE(created_at) >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)";
+if ($stmt = $conn->prepare($sql)) {
+    $stmt->execute();
+    $stmt->bind_result($newCustomers);
+    $stmt->fetch();
+    $stmt->close();
+}
+
+// Fetch last 7 days revenue and order count
+$revenueData = [];
+$orderData = [];
+$labels = [];
+$sql = "SELECT DATE(order_date) as day, SUM(total) as revenue, COUNT(*) as orders FROM orders WHERE order_date >= DATE_SUB(CURDATE(), INTERVAL 6 DAY) GROUP BY day ORDER BY day ASC";
+$result = $conn->query($sql);
+$days = [];
+$revenues = [];
+$orders = [];
+if ($result) {
+    while ($row = $result->fetch_assoc()) {
+        $days[] = date('D', strtotime($row['day']));
+        $revenues[] = (float)$row['revenue'];
+        $orders[] = (int)$row['orders'];
+    }
+}
+// Fill missing days with 0
+for ($i = 6; $i >= 0; $i--) {
+    $date = date('Y-m-d', strtotime("-$i days"));
+    $label = date('D', strtotime($date));
+    $labels[] = $label;
+    $key = array_search($label, $days);
+    if ($key !== false) {
+        $revenueData[] = $revenues[$key];
+        $orderData[] = $orders[$key];
+    } else {
+        $revenueData[] = 0;
+        $orderData[] = 0;
+    }
+}
+
+// Fetch top selling items (system-wide, top 3 for today)
+$topSellingItems = array();
+$sql = "SELECT item_name, SUM(quantity) as total_orders, SUM(total) as total_revenue FROM orders WHERE DATE(order_date) = CURDATE() GROUP BY item_name ORDER BY total_orders DESC LIMIT 3";
+$result = $conn->query($sql);
+if ($result) {
+    while ($row = $result->fetch_assoc()) {
+        $topSellingItems[] = $row;
+    }
+}
+
+if (isset($_GET['export']) && $_GET['export'] === 'csv') {
+    header('Content-Type: text/csv');
+    header('Content-Disposition: attachment; filename="analytics_report_' . date('Ymd') . '.csv"');
+    $output = fopen('php://output', 'w');
+    // Quick Stats
+    fputcsv($output, ['Quick Stats']);
+    fputcsv($output, ['Total Revenue', number_format($totalRevenue, 2)]);
+    fputcsv($output, ['Total Orders', $totalOrders]);
+    fputcsv($output, ['Average Order Value', number_format($avgOrderValue, 2)]);
+    fputcsv($output, ['New Customers (30 days)', $newCustomers]);
+    fputcsv($output, []);
+    // Top Selling Products
+    fputcsv($output, ['Top Selling Products']);
+    fputcsv($output, ['Product Name', 'Orders', 'Revenue']);
+    foreach ($topSellingItems as $item) {
+        fputcsv($output, [
+            $item['item_name'],
+            $item['total_orders'],
+            number_format($item['total_revenue'], 2)
+        ]);
+    }
+    fclose($output);
+    exit();
+}
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -83,7 +193,7 @@
                             <option>Last 3 Months</option>
                             <option>Last Year</option>
                         </select>
-                        <button class="bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary/90 flex items-center">
+                        <button class="bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary/90 flex items-center" onclick="window.location.href='?export=csv'">
                             <i class="fas fa-download mr-2"></i>
                             Export Report
                         </button>
@@ -99,8 +209,8 @@
                         <div class="flex items-center justify-between">
                             <div>
                                 <p class="text-sm text-gray-500">Total Revenue</p>
-                                <h3 class="text-2xl font-semibold text-gray-800">$24,580</h3>
-                                <p class="text-sm text-green-600">+12.5% from last period</p>
+                                <h3 class="text-2xl font-semibold text-gray-800">$<?php echo number_format($totalRevenue, 2); ?></h3>
+                                <p class="text-sm text-green-600">&nbsp;</p>
                             </div>
                             <div class="p-3 bg-green-100 rounded-full">
                                 <i class="fas fa-dollar-sign text-green-500 text-xl"></i>
@@ -111,8 +221,8 @@
                         <div class="flex items-center justify-between">
                             <div>
                                 <p class="text-sm text-gray-500">Total Orders</p>
-                                <h3 class="text-2xl font-semibold text-gray-800">1,234</h3>
-                                <p class="text-sm text-green-600">+8.3% from last period</p>
+                                <h3 class="text-2xl font-semibold text-gray-800"><?php echo number_format($totalOrders); ?></h3>
+                                <p class="text-sm text-green-600">&nbsp;</p>
                             </div>
                             <div class="p-3 bg-blue-100 rounded-full">
                                 <i class="fas fa-shopping-cart text-blue-500 text-xl"></i>
@@ -123,8 +233,8 @@
                         <div class="flex items-center justify-between">
                             <div>
                                 <p class="text-sm text-gray-500">Average Order Value</p>
-                                <h3 class="text-2xl font-semibold text-gray-800">$45.99</h3>
-                                <p class="text-sm text-green-600">+5.2% from last period</p>
+                                <h3 class="text-2xl font-semibold text-gray-800">$<?php echo number_format($avgOrderValue, 2); ?></h3>
+                                <p class="text-sm text-green-600">&nbsp;</p>
                             </div>
                             <div class="p-3 bg-purple-100 rounded-full">
                                 <i class="fas fa-chart-line text-purple-500 text-xl"></i>
@@ -135,8 +245,8 @@
                         <div class="flex items-center justify-between">
                             <div>
                                 <p class="text-sm text-gray-500">New Customers</p>
-                                <h3 class="text-2xl font-semibold text-gray-800">156</h3>
-                                <p class="text-sm text-green-600">+15.8% from last period</p>
+                                <h3 class="text-2xl font-semibold text-gray-800"><?php echo number_format($newCustomers); ?></h3>
+                                <p class="text-sm text-green-600">&nbsp;</p>
                             </div>
                             <div class="p-3 bg-yellow-100 rounded-full">
                                 <i class="fas fa-users text-yellow-500 text-xl"></i>
@@ -167,72 +277,24 @@
                     </div>
                     <div class="p-6">
                         <div class="space-y-4">
-                            <!-- Product 1 -->
-                            <div class="flex items-center justify-between">
-                                <div class="flex items-center space-x-4">
-                                    <img src="https://images.unsplash.com/photo-1513104890138-7c749659a591?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80" 
-                                        alt="Margherita Pizza" 
-                                        class="w-12 h-12 rounded-lg object-cover">
-                                    <div>
-                                        <h4 class="text-sm font-medium text-gray-900">Margherita Pizza</h4>
-                                        <p class="text-sm text-gray-500">Italian</p>
+                            <?php if (!empty($topSellingItems)): ?>
+                                <?php foreach ($topSellingItems as $item): ?>
+                                    <div class="flex items-center justify-between">
+                                        <div class="flex items-center space-x-4">
+                                            <div class="p-3 bg-gray-100 rounded-full">
+                                                <h4 class="text-sm font-medium text-gray-900"><?php echo htmlspecialchars($item['item_name']); ?></h4>
+                                            </div>
+                                        </div>
+                                        <div class="text-right">
+                                            <p class="text-sm font-medium text-gray-900"><?php echo number_format($item['total_orders']); ?> orders</p>
+                                            <p class="text-sm text-gray-500">$<?php echo number_format($item['total_revenue'], 2); ?> revenue</p>
+                                        </div>
                                     </div>
-                                </div>
-                                <div class="text-right">
-                                    <p class="text-sm font-medium text-gray-900">245 orders</p>
-                                    <p class="text-sm text-gray-500">$2,940 revenue</p>
-                                </div>
-                            </div>
-
-                            <!-- Product 2 -->
-                            <div class="flex items-center justify-between">
-                                <div class="flex items-center space-x-4">
-                                    <img src="https://images.unsplash.com/photo-1568901346375-23c9450c58cd?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80" 
-                                        alt="Chicken Burger" 
-                                        class="w-12 h-12 rounded-lg object-cover">
-                                    <div>
-                                        <h4 class="text-sm font-medium text-gray-900">Chicken Burger</h4>
-                                        <p class="text-sm text-gray-500">American</p>
-                                    </div>
-                                </div>
-                                <div class="text-right">
-                                    <p class="text-sm font-medium text-gray-900">198 orders</p>
-                                    <p class="text-sm text-gray-500">$1,782 revenue</p>
-                                </div>
-                            </div>
-
-                            <!-- Product 3 -->
-                            <div class="flex items-center justify-between">
-                                <div class="flex items-center space-x-4">
-                                    <img src="https://images.unsplash.com/photo-1585032226651-759b368d7246?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80" 
-                                        alt="Pad Thai" 
-                                        class="w-12 h-12 rounded-lg object-cover">
-                                    <div>
-                                        <h4 class="text-sm font-medium text-gray-900">Pad Thai</h4>
-                                        <p class="text-sm text-gray-500">Thai</p>
-                                    </div>
-                                </div>
-                                <div class="text-right">
-                                    <p class="text-sm font-medium text-gray-900">156 orders</p>
-                                    <p class="text-sm text-gray-500">$2,340 revenue</p>
-                                </div>
-                            </div>
+                                <?php endforeach; ?>
+                            <?php else: ?>
+                                <div class="text-center text-gray-400">No top selling products today.</div>
+                            <?php endif; ?>
                         </div>
-                    </div>
-                </div>
-
-                <!-- Customer Insights -->
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <!-- Peak Hours -->
-                    <div class="bg-white rounded-lg shadow p-6">
-                        <h3 class="text-lg font-semibold text-gray-800 mb-4">Peak Hours</h3>
-                        <canvas id="peakHoursChart" height="300"></canvas>
-                    </div>
-
-                    <!-- Customer Demographics -->
-                    <div class="bg-white rounded-lg shadow p-6">
-                        <h3 class="text-lg font-semibold text-gray-800 mb-4">Customer Demographics</h3>
-                        <canvas id="demographicsChart" height="300"></canvas>
                     </div>
                 </div>
             </main>
@@ -245,10 +307,10 @@
         new Chart(revenueCtx, {
             type: 'line',
             data: {
-                labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+                labels: <?php echo json_encode($labels); ?>,
                 datasets: [{
                     label: 'Revenue',
-                    data: [3200, 2800, 3500, 4200, 5100, 4800, 3900],
+                    data: <?php echo json_encode($revenueData); ?>,
                     borderColor: '#E63946',
                     tension: 0.4,
                     fill: false
@@ -257,17 +319,13 @@
             options: {
                 responsive: true,
                 plugins: {
-                    legend: {
-                        display: false
-                    }
+                    legend: { display: false }
                 },
                 scales: {
                     y: {
                         beginAtZero: true,
                         ticks: {
-                            callback: function(value) {
-                                return '$' + value;
-                            }
+                            callback: function(value) { return '$' + value; }
                         }
                     }
                 }
@@ -279,80 +337,20 @@
         new Chart(ordersCtx, {
             type: 'bar',
             data: {
-                labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+                labels: <?php echo json_encode($labels); ?>,
                 datasets: [{
                     label: 'Orders',
-                    data: [65, 59, 80, 81, 56, 55, 40],
+                    data: <?php echo json_encode($orderData); ?>,
                     backgroundColor: '#E63946',
                 }]
             },
             options: {
                 responsive: true,
                 plugins: {
-                    legend: {
-                        display: false
-                    }
+                    legend: { display: false }
                 },
                 scales: {
-                    y: {
-                        beginAtZero: true
-                    }
-                }
-            }
-        });
-
-        // Peak Hours Chart
-        const peakHoursCtx = document.getElementById('peakHoursChart').getContext('2d');
-        new Chart(peakHoursCtx, {
-            type: 'line',
-            data: {
-                labels: ['8AM', '10AM', '12PM', '2PM', '4PM', '6PM', '8PM', '10PM'],
-                datasets: [{
-                    label: 'Orders',
-                    data: [5, 15, 45, 30, 20, 60, 40, 15],
-                    borderColor: '#E63946',
-                    backgroundColor: 'rgba(230, 57, 70, 0.1)',
-                    fill: true
-                }]
-            },
-            options: {
-                responsive: true,
-                plugins: {
-                    legend: {
-                        display: false
-                    }
-                },
-                scales: {
-                    y: {
-                        beginAtZero: true
-                    }
-                }
-            }
-        });
-
-        // Demographics Chart
-        const demographicsCtx = document.getElementById('demographicsChart').getContext('2d');
-        new Chart(demographicsCtx, {
-            type: 'doughnut',
-            data: {
-                labels: ['18-24', '25-34', '35-44', '45-54', '55+'],
-                datasets: [{
-                    data: [15, 35, 25, 15, 10],
-                    backgroundColor: [
-                        '#E63946',
-                        '#F1FAEE',
-                        '#A8DADC',
-                        '#457B9D',
-                        '#1D3557'
-                    ]
-                }]
-            },
-            options: {
-                responsive: true,
-                plugins: {
-                    legend: {
-                        position: 'right'
-                    }
+                    y: { beginAtZero: true }
                 }
             }
         });
