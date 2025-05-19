@@ -117,14 +117,14 @@ if (isset($_SESSION['menu_item_added']) && $_SESSION['menu_item_added']) {
                         <?php foreach ($menu_items as $item): ?>
                         <div class="bg-white rounded-lg shadow">
                             <div class="relative">
-                                <img src="<?php echo !empty($item['image_url']) ? '../uploads/' . htmlspecialchars($item['image_url']) : 'https://via.placeholder.com/400x300?text=No+Image'; ?>"
+                                <img src="<?php echo !empty($item['image_url']) ? 'uploads/' . htmlspecialchars($item['image_url']) : 'https://via.placeholder.com/400x300?text=No+Image'; ?>"
                                     alt="<?php echo htmlspecialchars($item['item_name']); ?>"
                                     class="w-full h-48 object-cover rounded-t-lg">
                                 <div class="absolute top-2 right-2 flex space-x-2">
-                                    <button class="p-2 bg-white rounded-full shadow hover:bg-gray-50">
+                                    <button onclick="openEditModal(<?php echo htmlspecialchars(json_encode($item)); ?>)" class="p-2 bg-white rounded-full shadow hover:bg-gray-50">
                                         <i class="fas fa-edit text-gray-600"></i>
                                     </button>
-                                    <button class="p-2 bg-white rounded-full shadow hover:bg-gray-50">
+                                    <button onclick="openDeleteModal(<?php echo $item['id']; ?>)" class="p-2 bg-white rounded-full shadow hover:bg-gray-50">
                                         <i class="fas fa-trash text-red-500"></i>
                                     </button>
                                 </div>
@@ -144,9 +144,6 @@ if (isset($_SESSION['menu_item_added']) && $_SESSION['menu_item_added']) {
                                     <?php else: ?>
                                         <span class="px-2 py-1 bg-red-100 text-red-600 rounded-full text-sm">Unavailable</span>
                                     <?php endif; ?>
-                                    <button class="text-primary hover:text-primary/80">
-                                        <i class="fas fa-eye"></i> Preview
-                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -263,6 +260,72 @@ if (isset($_SESSION['menu_item_added']) && $_SESSION['menu_item_added']) {
         function closeModal() {
             document.getElementById('addItemModal').classList.add('hidden');
             document.getElementById('addItemModal').classList.remove('flex');
+        }
+
+        // Edit Modal
+        function openEditModal(item) {
+            Swal.fire({
+                title: 'Edit Menu Item',
+                html: `
+                    <input id="swal-item-name" class="swal2-input" placeholder="Item Name" value="${item.item_name || ''}">
+                    <input id="swal-category" class="swal2-input" placeholder="Category" value="${item.category || ''}">
+                    <input id="swal-price" type="number" step="0.01" class="swal2-input" placeholder="Price" value="${item.price || ''}">
+                    <textarea id="swal-description" class="swal2-textarea" placeholder="Description">${item.description || ''}</textarea>
+                `,
+                focusConfirm: false,
+                showCancelButton: true,
+                confirmButtonText: 'Save',
+                cancelButtonText: 'Cancel',
+                preConfirm: () => {
+                    return {
+                        id: item.id,
+                        item_name: document.getElementById('swal-item-name').value,
+                        category: document.getElementById('swal-category').value,
+                        price: document.getElementById('swal-price').value,
+                        description: document.getElementById('swal-description').value
+                    };
+                }
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // AJAX request to update the menu item
+                    fetch('./auth/update_menu.php', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded'
+                        },
+                        body: new URLSearchParams(result.value)
+                    })
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.success) {
+                            Swal.fire('Saved!', 'Menu item updated.', 'success').then(() => location.reload());
+                        } else {
+                            Swal.fire('Error', data.error || 'Failed to update menu item.', 'error');
+                        }
+                    })
+                    .catch(() => {
+                        Swal.fire('Error', 'Failed to update menu item.', 'error');
+                    });
+                }
+            });
+        }
+
+        // Delete Modal
+        function openDeleteModal(itemId) {
+            Swal.fire({
+                title: 'Are you sure?',
+                text: 'This will permanently delete the menu item.',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#E63946',
+                confirmButtonText: 'Delete',
+                cancelButtonText: 'Cancel'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Redirect or AJAX to delete
+                    window.location.href = './auth/delete_menu.php?id=' + itemId;
+                }
+            });
         }
 
         // Close modal when clicking outside
