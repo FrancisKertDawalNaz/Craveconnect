@@ -40,13 +40,24 @@ if ($result && $row = $result->fetch_assoc()) {
 
 // Fetch active promotions for JS (if needed, you can use PHP to render instead of JS fetch)
 $active_promotions = [];
-$sql = "SELECT name, description, discount, end_date FROM promotions WHERE status = 'active' AND start_date <= CURDATE() AND end_date >= CURDATE() ORDER BY end_date ASC LIMIT 10";
+$promos_per_page = 4;
+$promo_page = isset($_GET['promo_page']) && is_numeric($_GET['promo_page']) ? (int)$_GET['promo_page'] : 1;
+$promo_offset = ($promo_page - 1) * $promos_per_page;
+$sql = "SELECT name, description, discount, end_date FROM promotions WHERE status = 'active' AND start_date <= CURDATE() AND end_date >= CURDATE() ORDER BY end_date ASC LIMIT $promos_per_page OFFSET $promo_offset";
 $result = $conn->query($sql);
 if ($result) {
     while ($row = $result->fetch_assoc()) {
         $active_promotions[] = $row;
     }
 }
+// Get total active promotions for pagination
+$sql = "SELECT COUNT(*) as total FROM promotions WHERE status = 'active' AND start_date <= CURDATE() AND end_date >= CURDATE()";
+$result = $conn->query($sql);
+$total_active_promos = 0;
+if ($result && $row = $result->fetch_assoc()) {
+    $total_active_promos = (int)$row['total'];
+}
+$total_promo_pages = max(1, ceil($total_active_promos / $promos_per_page));
 
 // Fetch top 3 loyalty members (from users table, order by points desc)
 $top_loyalty_members = [];
@@ -223,6 +234,19 @@ if ($result) {
                                 </div>
                             </div>
                             <?php endforeach; ?>
+                        </div>
+                    </div>
+                    <!-- Pagination -->
+                    <div class="p-6 flex justify-between items-center border-t">
+                        <div class="text-sm text-gray-500">
+                            Showing <?php echo min($promo_offset + 1, $total_active_promos); ?> - <?php echo min($promo_offset + $promos_per_page, $total_active_promos); ?> of <?php echo $total_active_promos; ?> promotions
+                        </div>
+                        <div class="flex space-x-2">
+                            <?php for ($i = 1; $i <= $total_promo_pages; $i++): ?>
+                            <a href="?promo_page=<?php echo $i; ?>" class="px-3 py-1 text-sm rounded-lg <?php echo $i === $promo_page ? 'bg-primary text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'; ?>">
+                                <?php echo $i; ?>
+                            </a>
+                            <?php endfor; ?>
                         </div>
                     </div>
                 </div>

@@ -12,8 +12,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $points = isset($_POST['points']) ? intval($_POST['points']) : 0;
 
     // Basic validation
-    if ($name === '' || $discount < 0 || $discount > 100 || $start_date === '' || $end_date === '' || $points < 0) {
-        echo json_encode(['success' => false, 'message' => 'Please fill all required fields correctly.']);
+    if ($name === '' || $discount < 0 || $discount > 100 || $start_date === '' || $end_date === '' || $points <= 0) {
+        echo json_encode(['success' => false, 'message' => 'Please fill all required fields correctly. Points required must be greater than 0.']);
+        exit;
+    }
+
+    // Ensure start_date <= end_date
+    if (strtotime($start_date) > strtotime($end_date)) {
+        echo json_encode(['success' => false, 'message' => 'Start date must be before or equal to end date.']);
         exit;
     }
 
