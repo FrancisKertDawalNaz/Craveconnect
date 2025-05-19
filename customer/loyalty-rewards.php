@@ -16,7 +16,39 @@ $pointsResult = $conn->query("SELECT points FROM users WHERE id = $userId");
 if ($pointsResult && $row = $pointsResult->fetch_assoc()) {
     $points = $row['points'];
 }
+
+// Check if 'points' column exists in promotions table
+$pointsColumnExists = false;
+$checkCol = $conn->query("SHOW COLUMNS FROM promotions LIKE 'points'");
+if ($checkCol && $checkCol->num_rows > 0) {
+    $pointsColumnExists = true;
+}
+
+// Fetch available rewards from promotions table
+$rewards = [];
+if ($pointsColumnExists) {
+    // Show all promotions for debugging, or adjust the filter as needed
+    $sql = "SELECT name, description, discount, points, end_date, status, start_date FROM promotions ORDER BY id DESC";
+    $result = $conn->query($sql);
+    if ($result) {
+        while ($row = $result->fetch_assoc()) {
+            // Only show rewards that are active and valid for today
+            $isActive = ($row['status'] === 'active');
+            $now = date('Y-m-d');
+            $isValidDate = ($row['start_date'] <= $now && $row['end_date'] >= $now);
+            if ($isActive && $isValidDate) {
+                $rewards[] = $row;
+            }
+        }
+    }
+}
 ?>
+<?php if (!$pointsColumnExists): ?>
+<div class="bg-red-100 text-red-700 p-4 rounded mb-4 text-center font-semibold">
+    Warning: The <b>points</b> column does not exist in the <b>promotions</b> table. Please run:<br>
+    <code>ALTER TABLE promotions ADD COLUMN points INT NOT NULL DEFAULT 0;</code>
+</div>
+<?php endif; ?>
 
 
 <!DOCTYPE html>
@@ -134,18 +166,18 @@ if ($pointsResult && $row = $pointsResult->fetch_assoc()) {
 
                 <!-- Available Rewards -->
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    <!-- Reward Card: Free Main Course (2000 points) -->
+                    <?php foreach ($rewards as $reward): ?>
                     <div class="bg-white rounded-lg shadow overflow-hidden">
                         <div class="p-6">
                             <div class="flex items-center justify-between mb-4">
                                 <div class="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center">
                                     <i class="fas fa-gift text-primary text-xl"></i>
                                 </div>
-                                <span class="text-sm font-medium text-primary">2,000 points</span>
+                                <span class="text-sm font-medium text-primary"><?php echo number_format($reward['points']); ?> points</span>
                             </div>
-                            <h3 class="text-lg font-semibold mb-2">Free Main Course</h3>
-                            <p class="text-gray-600 text-sm mb-4">Get any main course item for free, up to $25 value</p>
-                            <?php if ($points >= 2000): ?>
+                            <h3 class="text-lg font-semibold mb-2"><?php echo htmlspecialchars($reward['name']); ?></h3>
+                            <p class="text-gray-600 text-sm mb-4"><?php echo htmlspecialchars($reward['description']); ?></p>
+                            <?php if ($points >= $reward['points']): ?>
                                 <button class="w-full bg-primary text-white py-2 rounded-lg hover:bg-primary/90 font-medium">
                                     Redeem Now
                                 </button>
@@ -154,54 +186,10 @@ if ($pointsResult && $row = $pointsResult->fetch_assoc()) {
                                     Not Enough Points
                                 </button>
                             <?php endif; ?>
+                            <p class="text-xs text-gray-400 mt-2">Valid until <?php echo date('F j, Y', strtotime($reward['end_date'])); ?></p>
                         </div>
                     </div>
-
-                    <!-- Reward Card: Free Appetizer (1000 points) -->
-                    <div class="bg-white rounded-lg shadow overflow-hidden">
-                        <div class="p-6">
-                            <div class="flex items-center justify-between mb-4">
-                                <div class="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center">
-                                    <i class="fas fa-gift text-primary text-xl"></i>
-                                </div>
-                                <span class="text-sm font-medium text-primary">1,000 points</span>
-                            </div>
-                            <h3 class="text-lg font-semibold mb-2">Free Appetizer</h3>
-                            <p class="text-gray-600 text-sm mb-4">Get any appetizer for free, up to $15 value</p>
-                            <?php if ($points >= 1000): ?>
-                                <button class="w-full bg-primary text-white py-2 rounded-lg hover:bg-primary/90 font-medium">
-                                    Redeem Now
-                                </button>
-                            <?php else: ?>
-                                <button class="w-full bg-gray-100 text-gray-700 py-2 rounded-lg font-medium" disabled>
-                                    Not Enough Points
-                                </button>
-                            <?php endif; ?>
-                        </div>
-                    </div>
-
-                    <!-- Reward Card: Free Dessert (500 points) -->
-                    <div class="bg-white rounded-lg shadow overflow-hidden">
-                        <div class="p-6">
-                            <div class="flex items-center justify-between mb-4">
-                                <div class="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center">
-                                    <i class="fas fa-gift text-primary text-xl"></i>
-                                </div>
-                                <span class="text-sm font-medium text-primary">500 points</span>
-                            </div>
-                            <h3 class="text-lg font-semibold mb-2">Free Dessert</h3>
-                            <p class="text-gray-600 text-sm mb-4">Get any dessert for free, up to $10 value</p>
-                            <?php if ($points >= 500): ?>
-                                <button class="w-full bg-primary text-white py-2 rounded-lg hover:bg-primary/90 font-medium">
-                                    Redeem Now
-                                </button>
-                            <?php else: ?>
-                                <button class="w-full bg-gray-100 text-gray-700 py-2 rounded-lg font-medium" disabled>
-                                    Not Enough Points
-                                </button>
-                            <?php endif; ?>
-                        </div>
-                    </div>
+                    <?php endforeach; ?>
                 </div>
 
                 <!-- Points History -->
@@ -210,11 +198,30 @@ if ($pointsResult && $row = $pointsResult->fetch_assoc()) {
                     <div class="bg-white rounded-lg shadow overflow-hidden">
                         <div class="divide-y">
                             <?php
-                            // Fetch points history for this user
-                            $history = [];
-                            $sql = "SELECT type, reference, points, created_at FROM points_history WHERE user_id = ? ORDER BY created_at DESC LIMIT 20";
-                            if ($stmt = $conn->prepare($sql)) {
+                            // Pagination for points history
+                            $perPage = 3;
+                            $page = isset($_GET['page']) && is_numeric($_GET['page']) && $_GET['page'] > 0 ? (int)$_GET['page'] : 1;
+                            $offset = ($page - 1) * $perPage;
+
+                            // Get total count for pagination
+                            $totalHistory = 0;
+                            $sqlCount = "SELECT COUNT(*) as cnt FROM points_history WHERE user_id = ?";
+                            if ($stmt = $conn->prepare($sqlCount)) {
                                 $stmt->bind_param('i', $userId);
+                                $stmt->execute();
+                                $result = $stmt->get_result();
+                                if ($row = $result->fetch_assoc()) {
+                                    $totalHistory = (int)$row['cnt'];
+                                }
+                                $stmt->close();
+                            }
+                            $totalPages = max(1, ceil($totalHistory / $perPage));
+
+                            // Fetch paginated points history for this user
+                            $history = [];
+                            $sql = "SELECT type, reference, points, created_at FROM points_history WHERE user_id = ? ORDER BY created_at DESC LIMIT ? OFFSET ?";
+                            if ($stmt = $conn->prepare($sql)) {
+                                $stmt->bind_param('iii', $userId, $perPage, $offset);
                                 $stmt->execute();
                                 $result = $stmt->get_result();
                                 while ($row = $result->fetch_assoc()) {
@@ -242,6 +249,16 @@ if ($pointsResult && $row = $pointsResult->fetch_assoc()) {
                             <div class="p-4 text-gray-400 text-center">No points history yet.</div>
                             <?php endif; ?>
                         </div>
+                        <!-- Pagination Controls -->
+                        <?php if ($totalPages > 1): ?>
+                        <div class="flex justify-center items-center gap-2 py-4">
+                            <?php for ($i = 1; $i <= $totalPages; $i++): ?>
+                                <a href="?page=<?php echo $i; ?>" class="px-3 py-1 rounded <?php echo $i == $page ? 'bg-primary text-white' : 'bg-gray-200 text-gray-700 hover:bg-primary/20'; ?> font-medium">
+                                    <?php echo $i; ?>
+                                </a>
+                            <?php endfor; ?>
+                        </div>
+                        <?php endif; ?>
                     </div>
                 </div>
             </main>

@@ -9,17 +9,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $status = $_POST['status'] ?? 'inactive';
     $start_date = $_POST['start_date'] ?? '';
     $end_date = $_POST['end_date'] ?? '';
+    $points = isset($_POST['points']) ? intval($_POST['points']) : 0;
 
     // Basic validation
-    if ($name === '' || $discount < 0 || $discount > 100 || $start_date === '' || $end_date === '') {
+    if ($name === '' || $discount < 0 || $discount > 100 || $start_date === '' || $end_date === '' || $points < 0) {
         echo json_encode(['success' => false, 'message' => 'Please fill all required fields correctly.']);
         exit;
     }
 
-    $sql = "INSERT INTO promotions (name, description, discount, status, start_date, end_date) VALUES (?, ?, ?, ?, ?, ?)";
+    // Check if 'points' column exists in promotions table
+    $colCheck = $conn->query("SHOW COLUMNS FROM promotions LIKE 'points'");
+    if (!$colCheck || $colCheck->num_rows === 0) {
+        echo json_encode([
+            'success' => false,
+            'message' => "The 'points' column is missing from the promotions table. Please add it using: ALTER TABLE promotions ADD COLUMN points INT DEFAULT 0;"
+        ]);
+        exit;
+    }
+
+    $sql = "INSERT INTO promotions (name, description, discount, status, start_date, end_date, points) VALUES (?, ?, ?, ?, ?, ?, ?)";
     $stmt = $conn->prepare($sql);
     if ($stmt) {
-        $stmt->bind_param('ssdsss', $name, $description, $discount, $status, $start_date, $end_date);
+        $stmt->bind_param('ssdsssi', $name, $description, $discount, $status, $start_date, $end_date, $points);
         if ($stmt->execute()) {
             echo json_encode(['success' => true, 'message' => 'Promotion created successfully.']);
         } else {

@@ -47,6 +47,16 @@ if ($result) {
         $active_promotions[] = $row;
     }
 }
+
+// Fetch top 3 loyalty members (from users table, order by points desc)
+$top_loyalty_members = [];
+$sql = "SELECT id, fullname, points FROM users ORDER BY points DESC LIMIT 3";
+$result = $conn->query($sql);
+if ($result) {
+    while ($row = $result->fetch_assoc()) {
+        $top_loyalty_members[] = $row;
+    }
+}
 ?>
 
 <!DOCTYPE html>
@@ -264,56 +274,23 @@ if ($result) {
                         </div>
                         <div class="p-6">
                             <div class="space-y-4">
-                                <!-- Member 1 -->
+                                <?php foreach ($top_loyalty_members as $idx => $member): ?>
                                 <div class="flex items-center justify-between">
                                     <div class="flex items-center space-x-4">
-                                        <img src="https://ui-avatars.com/api/?name=John+Doe&background=E63946&color=fff" 
-                                            alt="John Doe" 
+                                        <img src="https://ui-avatars.com/api/?name=<?php echo urlencode($member['fullname']); ?>&background=E63946&color=fff" 
+                                            alt="<?php echo htmlspecialchars($member['fullname']); ?>" 
                                             class="w-10 h-10 rounded-full">
                                         <div>
-                                            <h4 class="text-sm font-medium text-gray-900">John Doe</h4>
-                                            <p class="text-sm text-gray-500">Gold Member</p>
+                                            <h4 class="text-sm font-medium text-gray-900"><?php echo htmlspecialchars($member['fullname']); ?></h4>
+                                            <p class="text-sm text-gray-500"><?php echo $idx === 0 ? 'Gold Member' : 'Silver Member'; ?></p>
                                         </div>
                                     </div>
                                     <div class="text-right">
-                                        <p class="text-sm font-medium text-gray-900">1,250 points</p>
-                                        <p class="text-xs text-gray-500">$1,250 spent</p>
+                                        <p class="text-sm font-medium text-gray-900"><?php echo number_format($member['points']); ?> points</p>
+                                        <p class="text-xs text-gray-500">$<?php echo number_format($member['points'] * 0.05, 2); ?> spent</p>
                                     </div>
                                 </div>
-
-                                <!-- Member 2 -->
-                                <div class="flex items-center justify-between">
-                                    <div class="flex items-center space-x-4">
-                                        <img src="https://ui-avatars.com/api/?name=Jane+Smith&background=E63946&color=fff" 
-                                            alt="Jane Smith" 
-                                            class="w-10 h-10 rounded-full">
-                                        <div>
-                                            <h4 class="text-sm font-medium text-gray-900">Jane Smith</h4>
-                                            <p class="text-sm text-gray-500">Silver Member</p>
-                                        </div>
-                                    </div>
-                                    <div class="text-right">
-                                        <p class="text-sm font-medium text-gray-900">850 points</p>
-                                        <p class="text-xs text-gray-500">$850 spent</p>
-                                    </div>
-                                </div>
-
-                                <!-- Member 3 -->
-                                <div class="flex items-center justify-between">
-                                    <div class="flex items-center space-x-4">
-                                        <img src="https://ui-avatars.com/api/?name=Mike+Johnson&background=E63946&color=fff" 
-                                            alt="Mike Johnson" 
-                                            class="w-10 h-10 rounded-full">
-                                        <div>
-                                            <h4 class="text-sm font-medium text-gray-900">Mike Johnson</h4>
-                                            <p class="text-sm text-gray-500">Silver Member</p>
-                                        </div>
-                                    </div>
-                                    <div class="text-right">
-                                        <p class="text-sm font-medium text-gray-900">720 points</p>
-                                        <p class="text-xs text-gray-500">$720 spent</p>
-                                    </div>
-                                </div>
+                                <?php endforeach; ?>
                             </div>
                         </div>
                     </div>
@@ -364,6 +341,10 @@ if ($result) {
                         <label class="block text-sm font-medium text-gray-700 mb-2">End Date</label>
                         <input type="date" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" required>
                     </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Points Required</label>
+                    <input type="number" min="0" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" name="points" placeholder="Enter points required to redeem this promotion" required>
                 </div>
                 <div class="flex justify-end space-x-3 pt-6">
                     <button type="button" onclick="closeCreatePromotionModal()" class="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200">
@@ -442,7 +423,8 @@ if ($result) {
             discount: form.elements[2].value,
             status: form.elements[3].value,
             start_date: form.elements[4].value,
-            end_date: form.elements[5].value
+            end_date: form.elements[5].value,
+            points: form.elements[6].value // Add points field
         };
         try {
             const response = await fetch('auth/insert_promotion.php', {
