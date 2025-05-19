@@ -88,6 +88,7 @@ if ($stmt = $conn->prepare($sql)) {
 ?>
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -106,6 +107,7 @@ if ($stmt = $conn->prepare($sql)) {
     </script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
+
 <body class="bg-gray-100">
     <div class="flex h-screen">
         <!-- Sidebar -->
@@ -168,8 +170,8 @@ if ($stmt = $conn->prepare($sql)) {
                             Welcome, <?php echo isset($_SESSION['owner_name']) ? htmlspecialchars($_SESSION['owner_name']) : 'Restaurant Owner'; ?>
                         </span>
                         <div class="relative">
-                            <img src="https://ui-avatars.com/api/?name=<?php echo urlencode(isset($_SESSION['owner_name']) ? $_SESSION['owner_name'] : 'Restaurant Owner'); ?>&background=E63946&color=fff" 
-                                alt="Profile" 
+                            <img src="https://ui-avatars.com/api/?name=<?php echo urlencode(isset($_SESSION['owner_name']) ? $_SESSION['owner_name'] : 'Restaurant Owner'); ?>&background=E63946&color=fff"
+                                alt="Profile"
                                 class="w-8 h-8 rounded-full">
                         </div>
                     </div>
@@ -249,11 +251,23 @@ if ($stmt = $conn->prepare($sql)) {
                                                 <td class="py-4"><?php echo htmlspecialchars($order['item_name']); ?></td>
                                                 <td><?php echo htmlspecialchars($order['quantity']); ?> items</td>
                                                 <td>$<?php echo number_format($order['total'], 2); ?></td>
-                                                <td><span class="px-2 py-1 bg-gray-100 text-gray-700 rounded-full text-sm"><?php echo htmlspecialchars($order['order_status']); ?></span></td>
+                                                <td><span class="px-2 py-1 rounded-full text-sm
+    <?php
+                                            if ($order['order_status'] === 'Approved') echo 'bg-green-500 text-white';
+                                            else if ($order['order_status'] === 'Pending') echo 'bg-yellow-100 text-yellow-800';
+                                            else if ($order['order_status'] === 'Preparing') echo 'bg-blue-100 text-blue-600';
+                                            else if ($order['order_status'] === 'Completed') echo 'bg-gray-200 text-gray-600';
+                                            else if ($order['order_status'] === 'Cancelled') echo 'bg-red-100 text-red-600';
+                                            else echo 'bg-gray-100 text-gray-700';
+    ?>">
+                                                        <?php echo htmlspecialchars($order['order_status']); ?>
+                                                    </span></td>
                                             </tr>
                                         <?php endforeach; ?>
                                     <?php else: ?>
-                                        <tr><td colspan="4" class="py-4 text-center text-gray-400">No recent orders found.</td></tr>
+                                        <tr>
+                                            <td colspan="4" class="py-4 text-center text-gray-400">No recent orders found.</td>
+                                        </tr>
                                     <?php endif; ?>
                                 </tbody>
                             </table>
@@ -271,7 +285,7 @@ if ($stmt = $conn->prepare($sql)) {
                             <?php if (count($topSellingItems) > 0): ?>
                                 <?php foreach ($topSellingItems as $item): ?>
                                     <div class="flex items-center justify-between">
-                                        <div class="flex items-center">                                  
+                                        <div class="flex items-center">
                                             <div class="ml-4">
                                                 <h4 class="text-gray-800"><?php echo htmlspecialchars($item['item_name']); ?></h4>
                                                 <p class="text-sm text-gray-500">&nbsp;</p>
@@ -293,4 +307,5 @@ if ($stmt = $conn->prepare($sql)) {
         </div>
     </div>
 </body>
+
 </html>

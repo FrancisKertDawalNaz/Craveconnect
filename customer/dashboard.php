@@ -180,6 +180,7 @@ if ($points >= 500) $availableRewards++;
                                         if ($status === 'Pending') $statusClass = 'bg-yellow-100 text-yellow-800';
                                         else if ($status === 'Preparing') $statusClass = 'bg-yellow-200 text-yellow-900';
                                         else if ($status === 'Completed') $statusClass = 'bg-green-100 text-green-800';
+                                        else if ($status === 'Approved') $statusClass = 'bg-green-500 text-white';
                                         else if ($status === 'Cancelled') $statusClass = 'bg-red-100 text-red-800';
                                         ?>
                                         <span class="px-3 py-1 text-sm rounded-full <?php echo $statusClass; ?>">
