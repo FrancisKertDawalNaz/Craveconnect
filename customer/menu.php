@@ -7,6 +7,17 @@ if (!isset($_SESSION['user_id'])) {
 }
 
 $userFullName = $_SESSION['fullname'];
+
+// Fetch menu items from DB
+require_once '../owner/auth/connection.php';
+$menu_items = [];
+$sql = "SELECT * FROM menu_items ORDER BY id DESC";
+$result = $conn->query($sql);
+if ($result && $result->num_rows > 0) {
+    while ($row = $result->fetch_assoc()) {
+        $menu_items[] = $row;
+    }
+}
 ?>
 
 <!DOCTYPE html>
@@ -87,27 +98,15 @@ $userFullName = $_SESSION['fullname'];
 
             <main class="p-6">
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div class="bg-white rounded-lg shadow p-6">
-                        <img src="../assets/images/view-ready-eat-delicious-meal-go.jpg" alt="Burger" class="rounded mb-4">
-                        <h3 class="text-lg font-semibold mb-2">Classic Burger</h3>
-                        <p class="text-gray-600 mb-2">Juicy beef patty with fresh lettuce, tomato, and cheese.</p>
-                        <p class="text-primary font-bold">$8.99</p>
-                        <button onclick="openModal(0)" class="mt-2 w-full bg-primary text-white py-2 rounded hover:bg-red-700 transition">Add to Cart</button>
-                    </div>
-                    <div class="bg-white rounded-lg shadow p-6">
-                        <img src="../assets/images/slice-cut-from-classic-pepperoni-pizza-with-green-pepper-rolls.jpg" alt="Pizza" class="rounded mb-4">
-                        <h3 class="text-lg font-semibold mb-2">Pepperoni Pizza</h3>
-                        <p class="text-gray-600 mb-2">Thin crust pizza topped with pepperoni and mozzarella cheese.</p>
-                        <p class="text-primary font-bold">$12.50</p>
-                        <button onclick="openModal(1)" class="mt-2 w-full bg-primary text-white py-2 rounded hover:bg-red-700 transition">Add to Cart</button>
-                    </div>
-                    <div class="bg-white rounded-lg shadow p-6">
-                        <img src="../assets/images/caesar-salad-with-grilled-chicken-breast-parmesan-cherry-tomatoes.jpg" alt="Salad" class="rounded mb-4">
-                        <h3 class="text-lg font-semibold mb-2">Caesar Salad</h3>
-                        <p class="text-gray-600 mb-2">Fresh romaine lettuce, parmesan, croutons, and Caesar dressing.</p>
-                        <p class="text-primary font-bold">$7.00</p>
-                        <button onclick="openModal(2)" class="mt-2 w-full bg-primary text-white py-2 rounded hover:bg-red-700 transition">Add to Cart</button>
-                    </div>
+                    <?php foreach ($menu_items as $idx => $item): ?>
+                        <div class="bg-white rounded-lg shadow p-6">
+                            <img src="<?php echo '../owner/uploads/' . htmlspecialchars($item['image_url']); ?>" alt="<?php echo htmlspecialchars($item['item_name']); ?>" class="rounded mb-4 w-full h-40 object-cover">
+                            <h3 class="text-lg font-semibold mb-2"><?php echo htmlspecialchars($item['item_name']); ?></h3>
+                            <p class="text-gray-600 mb-2"><?php echo htmlspecialchars($item['description']); ?></p>
+                            <p class="text-primary font-bold">$<?php echo number_format($item['price'], 2); ?></p>
+                            <button onclick="openModal(<?php echo $idx; ?>)" class="mt-2 w-full bg-primary text-white py-2 rounded hover:bg-red-700 transition">Add to Cart</button>
+                        </div>
+                    <?php endforeach; ?>
                 </div>
             </main>
         </div>
@@ -132,26 +131,7 @@ $userFullName = $_SESSION['fullname'];
     </div>
 
     <script>
-    const items = [
-        {
-            title: 'Classic Burger',
-            desc: 'Juicy beef patty with fresh lettuce, tomato, and cheese.',
-            price: '$8.99',
-            img: '../assets/images/view-ready-eat-delicious-meal-go.jpg'
-        },
-        {
-            title: 'Pepperoni Pizza',
-            desc: 'Thin crust pizza topped with pepperoni and mozzarella cheese.',
-            price: '$12.50',
-            img: '../assets/images/slice-cut-from-classic-pepperoni-pizza-with-green-pepper-rolls.jpg'
-        },
-        {
-            title: 'Caesar Salad',
-            desc: 'Fresh romaine lettuce, parmesan, croutons, and Caesar dressing.',
-            price: '$7.00',
-            img: '../assets/images/caesar-salad-with-grilled-chicken-breast-parmesan-cherry-tomatoes.jpg'
-        }
-    ];
+    const items = <?php echo json_encode($menu_items); ?>;
 
     const modal = document.getElementById('orderModal');
     const modalTitle = document.getElementById('modalTitle');
@@ -162,10 +142,11 @@ $userFullName = $_SESSION['fullname'];
 
     function openModal(idx) {
         const item = items[idx];
-        modalTitle.textContent = item.title;
-        modalImage.src = item.img;
-        modalDesc.textContent = item.desc;
-        modalPrice.textContent = item.price;
+        modalTitle.textContent = item.item_name;
+        modalImage.src = '../owner/uploads/' + item.image_url;
+        modalImage.alt = item.item_name;
+        modalDesc.textContent = item.description;
+        modalPrice.textContent = `$${parseFloat(item.price).toFixed(2)}`;
         modalQty.value = 1;
         modal.classList.remove('hidden');
     }

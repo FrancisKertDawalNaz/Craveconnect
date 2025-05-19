@@ -104,6 +104,13 @@ if (isset($_SESSION['menu_item_added']) && $_SESSION['menu_item_added']) {
                 </div>
             </header>            
             <main class="p-6">
+                <!-- Error Message -->
+                <?php if (isset($_SESSION['menu_error'])): ?>
+                    <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative m-4">
+                        <?php echo htmlspecialchars($_SESSION['menu_error']); unset($_SESSION['menu_error']); ?>
+                    </div>
+                <?php endif; ?>
+
                 <!-- Categories -->
                 <div class="mb-6">
                     <div class="flex space-x-4 overflow-x-auto pb-2">
@@ -138,13 +145,6 @@ if (isset($_SESSION['menu_item_added']) && $_SESSION['menu_item_added']) {
                                     <span class="text-lg font-semibold text-primary">$<?php echo number_format($item['price'], 2); ?></span>
                                 </div>
                                 <p class="mt-2 text-gray-600 text-sm"><?php echo htmlspecialchars($item['description']); ?></p>
-                                <div class="mt-4 flex items-center justify-between">
-                                    <?php if (isset($item['is_available']) && $item['is_available']): ?>
-                                        <span class="px-2 py-1 bg-green-100 text-green-600 rounded-full text-sm">Available</span>
-                                    <?php else: ?>
-                                        <span class="px-2 py-1 bg-red-100 text-red-600 rounded-full text-sm">Unavailable</span>
-                                    <?php endif; ?>
-                                </div>
                             </div>
                         </div>
                         <?php endforeach; ?>
