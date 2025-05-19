@@ -45,7 +45,8 @@ if (isset($_FILES['image']) && $_FILES['image']['error'] == 0) {
         header("Location: ../restaurant-menu.php");
         exit();
     }
-    $image_path = "uploads/" . $unique_name;
+    // Save only the filename in the database
+    $image_path = $unique_name;
 }
 
 $sql = "INSERT INTO menu_items (item_name, category, description, price, image_url) VALUES (?, ?, ?, ?, ?)";

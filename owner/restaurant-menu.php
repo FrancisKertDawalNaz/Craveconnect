@@ -1,3 +1,18 @@
+<?php
+session_start();
+
+// Database connection
+include_once __DIR__ . '/auth/connection.php';
+
+$menu_items = [];
+$sql = "SELECT * FROM menu_items ORDER BY id DESC";
+$result = mysqli_query($conn, $sql);
+if ($result && mysqli_num_rows($result) > 0) {
+    while ($row = mysqli_fetch_assoc($result)) {
+        $menu_items[] = $row;
+    }
+}
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -17,8 +32,15 @@
         }
     </script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
 <body class="bg-gray-100">
+<?php
+if (isset($_SESSION['menu_item_added']) && $_SESSION['menu_item_added']) {
+    echo "<script>Swal.fire({icon: 'success',title: 'Success!',text: 'Menu item added successfully!',showConfirmButton: false,timer: 2000});</script>";
+    unset($_SESSION['menu_item_added']);
+}
+?>
     <div class="flex h-screen">
         <!-- Sidebar -->
         <div class="w-64 bg-white shadow-lg">
@@ -86,113 +108,52 @@
                 <div class="mb-6">
                     <div class="flex space-x-4 overflow-x-auto pb-2">
                         <button class="px-4 py-2 bg-primary text-white rounded-lg">All Items</button>
-                        <button class="px-4 py-2 bg-white text-gray-700 rounded-lg hover:bg-gray-50">Appetizers</button>
-                        <button class="px-4 py-2 bg-white text-gray-700 rounded-lg hover:bg-gray-50">Main Course</button>
-                        <button class="px-4 py-2 bg-white text-gray-700 rounded-lg hover:bg-gray-50">Desserts</button>
-                        <button class="px-4 py-2 bg-white text-gray-700 rounded-lg hover:bg-gray-50">Beverages</button>
                     </div>
                 </div>
 
                 <!-- Menu Items Grid -->
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    <!-- Menu Item Card -->
-                    <div class="bg-white rounded-lg shadow">
-                        <div class="relative">
-                            <img src="https://images.unsplash.com/photo-1513104890138-7c749659a591?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80" 
-                                alt="Margherita Pizza" 
-                                class="w-full h-48 object-cover rounded-t-lg">
-                            <div class="absolute top-2 right-2 flex space-x-2">
-                                <button class="p-2 bg-white rounded-full shadow hover:bg-gray-50">
-                                    <i class="fas fa-edit text-gray-600"></i>
-                                </button>
-                                <button class="p-2 bg-white rounded-full shadow hover:bg-gray-50">
-                                    <i class="fas fa-trash text-red-500"></i>
-                                </button>
-                            </div>
-                        </div>
-                        <div class="p-4">
-                            <div class="flex justify-between items-start">
-                                <div>
-                                    <h3 class="text-lg font-semibold text-gray-800">Margherita Pizza</h3>
-                                    <p class="text-sm text-gray-500">Italian</p>
+                    <?php if (!empty($menu_items)): ?>
+                        <?php foreach ($menu_items as $item): ?>
+                        <div class="bg-white rounded-lg shadow">
+                            <div class="relative">
+                                <img src="<?php echo !empty($item['image_url']) ? '../uploads/' . htmlspecialchars($item['image_url']) : 'https://via.placeholder.com/400x300?text=No+Image'; ?>"
+                                    alt="<?php echo htmlspecialchars($item['item_name']); ?>"
+                                    class="w-full h-48 object-cover rounded-t-lg">
+                                <div class="absolute top-2 right-2 flex space-x-2">
+                                    <button class="p-2 bg-white rounded-full shadow hover:bg-gray-50">
+                                        <i class="fas fa-edit text-gray-600"></i>
+                                    </button>
+                                    <button class="p-2 bg-white rounded-full shadow hover:bg-gray-50">
+                                        <i class="fas fa-trash text-red-500"></i>
+                                    </button>
                                 </div>
-                                <span class="text-lg font-semibold text-primary">$12.99</span>
                             </div>
-                            <p class="mt-2 text-gray-600 text-sm">Fresh tomatoes, mozzarella, basil, and olive oil</p>
-                            <div class="mt-4 flex items-center justify-between">
-                                <span class="px-2 py-1 bg-green-100 text-green-600 rounded-full text-sm">Available</span>
-                                <button class="text-primary hover:text-primary/80">
-                                    <i class="fas fa-eye"></i> Preview
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Menu Item Card -->
-                    <div class="bg-white rounded-lg shadow">
-                        <div class="relative">
-                            <img src="https://images.unsplash.com/photo-1568901346375-23c9450c58cd?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80" 
-                                alt="Chicken Burger" 
-                                class="w-full h-48 object-cover rounded-t-lg">
-                            <div class="absolute top-2 right-2 flex space-x-2">
-                                <button class="p-2 bg-white rounded-full shadow hover:bg-gray-50">
-                                    <i class="fas fa-edit text-gray-600"></i>
-                                </button>
-                                <button class="p-2 bg-white rounded-full shadow hover:bg-gray-50">
-                                    <i class="fas fa-trash text-red-500"></i>
-                                </button>
-                            </div>
-                        </div>
-                        <div class="p-4">
-                            <div class="flex justify-between items-start">
-                                <div>
-                                    <h3 class="text-lg font-semibold text-gray-800">Chicken Burger</h3>
-                                    <p class="text-sm text-gray-500">American</p>
+                            <div class="p-4">
+                                <div class="flex justify-between items-start">
+                                    <div>
+                                        <h3 class="text-lg font-semibold text-gray-800"><?php echo htmlspecialchars($item['item_name']); ?></h3>
+                                        <p class="text-sm text-gray-500"><?php echo htmlspecialchars($item['category']); ?></p>
+                                    </div>
+                                    <span class="text-lg font-semibold text-primary">$<?php echo number_format($item['price'], 2); ?></span>
                                 </div>
-                                <span class="text-lg font-semibold text-primary">$8.99</span>
-                            </div>
-                            <p class="mt-2 text-gray-600 text-sm">Grilled chicken patty with lettuce, tomato, and special sauce</p>
-                            <div class="mt-4 flex items-center justify-between">
-                                <span class="px-2 py-1 bg-green-100 text-green-600 rounded-full text-sm">Available</span>
-                                <button class="text-primary hover:text-primary/80">
-                                    <i class="fas fa-eye"></i> Preview
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Menu Item Card -->
-                    <div class="bg-white rounded-lg shadow">
-                        <div class="relative">
-                            <img src="https://images.unsplash.com/photo-1585032226651-759b368d7246?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80" 
-                                alt="Pad Thai" 
-                                class="w-full h-48 object-cover rounded-t-lg">
-                            <div class="absolute top-2 right-2 flex space-x-2">
-                                <button class="p-2 bg-white rounded-full shadow hover:bg-gray-50">
-                                    <i class="fas fa-edit text-gray-600"></i>
-                                </button>
-                                <button class="p-2 bg-white rounded-full shadow hover:bg-gray-50">
-                                    <i class="fas fa-trash text-red-500"></i>
-                                </button>
-                            </div>
-                        </div>
-                        <div class="p-4">
-                            <div class="flex justify-between items-start">
-                                <div>
-                                    <h3 class="text-lg font-semibold text-gray-800">Pad Thai</h3>
-                                    <p class="text-sm text-gray-500">Thai</p>
+                                <p class="mt-2 text-gray-600 text-sm"><?php echo htmlspecialchars($item['description']); ?></p>
+                                <div class="mt-4 flex items-center justify-between">
+                                    <?php if (isset($item['is_available']) && $item['is_available']): ?>
+                                        <span class="px-2 py-1 bg-green-100 text-green-600 rounded-full text-sm">Available</span>
+                                    <?php else: ?>
+                                        <span class="px-2 py-1 bg-red-100 text-red-600 rounded-full text-sm">Unavailable</span>
+                                    <?php endif; ?>
+                                    <button class="text-primary hover:text-primary/80">
+                                        <i class="fas fa-eye"></i> Preview
+                                    </button>
                                 </div>
-                                <span class="text-lg font-semibold text-primary">$14.99</span>
-                            </div>
-                            <p class="mt-2 text-gray-600 text-sm">Stir-fried rice noodles with tofu, shrimp, peanuts, and tamarind sauce</p>
-                            <div class="mt-4 flex items-center justify-between">
-                                <span class="px-2 py-1 bg-yellow-100 text-yellow-600 rounded-full text-sm">Low Stock</span>
-                                <button class="text-primary hover:text-primary/80">
-                                    <i class="fas fa-eye"></i> Preview
-                                </button>
                             </div>
                         </div>
-                    </div>
+                        <?php endforeach; ?>
+                    <?php else: ?>
+                        <div class="col-span-3 text-center text-gray-500">No menu items found.</div>
+                    <?php endif; ?>
                 </div>
             </main>
         </div>
