@@ -102,7 +102,7 @@ if ($searchOrder > 0) {
                     <i class="fas fa-user w-6"></i>
                     <span>Profile</span>
                 </a>
-                <a href="restaurant-login.html" class="flex items-center px-4 py-3 text-gray-700 hover:bg-gray-100 hover:text-primary mt-4">
+                <a href="auth/logout.php" class="flex items-center px-4 py-3 text-gray-700 hover:bg-gray-100 hover:text-primary mt-4">
                     <i class="fas fa-sign-out-alt w-6"></i>
                     <span>Logout</span>
                 </a>

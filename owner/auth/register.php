@@ -1,5 +1,6 @@
 <?php
 include '../../auth/connection.php'; 
+session_start();
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $fullname = mysqli_real_escape_string($conn, $_POST['fullname']);
@@ -12,13 +13,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $confirm_password = $_POST['confirm_password'];
 
     if ($password !== $confirm_password) {
-        echo "<script>
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Password Mismatch',
-                    text: 'Passwords do not match!'
-                }).then(() => { history.back(); });
-              </script>";
+        $_SESSION['register_error'] = 'Passwords do not match!';
+        header('Location: ../restaurant-register.php?error=1');
         exit();
     }
 
@@ -26,13 +22,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
     $check_email = mysqli_query($conn, "SELECT * FROM restaurant_owners WHERE email='$email'");
     if (mysqli_num_rows($check_email) > 0) {
-        echo "<script>
-                Swal.fire({
-                    icon: 'warning',
-                    title: 'Email Already Used',
-                    text: 'This email is already registered.'
-                }).then(() => { history.back(); });
-              </script>";
+        $_SESSION['register_error'] = 'This email is already registered.';
+        header('Location: ../restaurant-register.php?error=1');
         exit();
     }
 
@@ -43,13 +34,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         header("Location: ../restaurant-login.php?registered=1");
         exit();
     } else {
-        echo "<script>
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Database Error',
-                    text: 'Something went wrong. Please try again.'
-                }).then(() => { history.back(); });
-              </script>";
+        $error = mysqli_error($conn);
+        $_SESSION['register_error'] = 'Something went wrong. Error: ' . $error;
+        header('Location: ../restaurant-register.php?error=1');
+        exit();
     }
 }
 ?>

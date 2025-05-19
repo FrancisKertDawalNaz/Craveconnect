@@ -27,18 +27,12 @@ if ($checkCol && $checkCol->num_rows > 0) {
 // Fetch available rewards from promotions table
 $rewards = [];
 if ($pointsColumnExists) {
-    // Show all promotions for debugging, or adjust the filter as needed
-    $sql = "SELECT name, description, discount, points, end_date, status, start_date FROM promotions ORDER BY id DESC";
+    $now = date('Y-m-d');
+    $sql = "SELECT name, description, discount, points, end_date, status, start_date FROM promotions WHERE status = 'active' AND start_date <= '$now' AND end_date >= '$now' ORDER BY id DESC";
     $result = $conn->query($sql);
     if ($result) {
         while ($row = $result->fetch_assoc()) {
-            // Only show rewards that are active and valid for today
-            $isActive = ($row['status'] === 'active');
-            $now = date('Y-m-d');
-            $isValidDate = ($row['start_date'] <= $now && $row['end_date'] >= $now);
-            if ($isActive && $isValidDate) {
-                $rewards[] = $row;
-            }
+            $rewards[] = $row;
         }
     }
 }
