@@ -15,10 +15,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $quantity = intval($_POST['quantity'] ?? 1);
     $price = floatval($_POST['price'] ?? 0);
     $total = $price * $quantity;
+    $order_type = $_POST['order_type'] ?? 'Pickup';
 
     if ($item_name && $quantity > 0 && $price > 0) {
-        $stmt = $conn->prepare("INSERT INTO orders (user_id, item_name, quantity, price, total) VALUES (?, ?, ?, ?, ?)");
-        $stmt->bind_param('isidd', $user_id, $item_name, $quantity, $price, $total);
+        $stmt = $conn->prepare("INSERT INTO orders (user_id, item_name, quantity, price, total, order_type) VALUES (?, ?, ?, ?, ?, ?)");
+        $stmt->bind_param('isidds', $user_id, $item_name, $quantity, $price, $total, $order_type);
         if ($stmt->execute()) {
             // Award points: 10 points per order (or you can use floor($total) for 1 point per peso/dollar)
             $points = 10;

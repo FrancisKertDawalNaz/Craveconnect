@@ -139,6 +139,20 @@ if ($searchOrder > 0) {
                 <!-- Orders List -->
                 <div class="space-y-4">
                     <?php if (!empty($orders)): ?>
+                        <?php 
+                        // Collect user IDs for batch query
+                        $userIds = array_map(function($order) { return (int)$order['user_id']; }, $orders);
+                        $userPhones = [];
+                        if (!empty($userIds)) {
+                            $ids = implode(',', $userIds);
+                            $userResult = mysqli_query($conn, "SELECT id, phone FROM users WHERE id IN ($ids)");
+                            if ($userResult && mysqli_num_rows($userResult) > 0) {
+                                while ($u = mysqli_fetch_assoc($userResult)) {
+                                    $userPhones[$u['id']] = $u['phone'];
+                                }
+                            }
+                        }
+                        ?>
                         <?php foreach ($orders as $order): ?>
                             <div class="bg-white rounded-lg shadow">
                                 <div class="p-4 border-b">
@@ -169,6 +183,10 @@ if ($searchOrder > 0) {
                                             <span class="font-medium"><?php echo htmlspecialchars($order['user_id']); ?></span>
                                         </div>
                                         <div class="flex justify-between">
+                                            <span class="text-gray-600">Phone:</span>
+                                            <span class="font-medium"><?php echo isset($userPhones[$order['user_id']]) ? htmlspecialchars($userPhones[$order['user_id']]) : 'N/A'; ?></span>
+                                        </div>
+                                        <div class="flex justify-between">
                                             <span class="text-gray-600">Item:</span>
                                             <span class="font-medium"><?php echo htmlspecialchars($order['item_name']); ?></span>
                                         </div>
@@ -183,6 +201,10 @@ if ($searchOrder > 0) {
                                         <div class="flex justify-between">
                                             <span class="text-gray-600">Total:</span>
                                             <span class="font-medium text-primary"><?php echo number_format($order['total'], 2); ?></span>
+                                        </div>
+                                        <div class="flex justify-between">
+                                            <span class="text-gray-600">Order Type:</span>
+                                            <span class="font-medium"><?php echo htmlspecialchars($order['order_type']); ?></span>
                                         </div>
                                     </div>
                                     <div class="mt-4 flex justify-end space-x-3">

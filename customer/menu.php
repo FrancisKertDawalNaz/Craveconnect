@@ -142,6 +142,11 @@ if ($result && $result->num_rows > 0) {
             <form>
                 <label class="block mb-2 font-semibold">Quantity</label>
                 <input type="number" min="1" value="1" class="w-full border rounded px-3 py-2 mb-4" id="modalQty">
+                <label class="block mb-2 font-semibold">Order Type</label>
+                <select id="modalOrderType" class="w-full border rounded px-3 py-2 mb-4">
+                    <option value="Pickup">Pick Up</option>
+                    <option value="Delivery">Deliver</option>
+                </select>
                 <div class="flex justify-end space-x-2">
                     <button type="button" onclick="closeModal()" class="px-4 py-2 rounded bg-gray-300 hover:bg-gray-400">Cancel</button>
                     <button type="submit" class="px-4 py-2 rounded bg-primary text-white hover:bg-red-700">Order Now</button>
@@ -159,6 +164,7 @@ if ($result && $result->num_rows > 0) {
     const modalDesc = document.getElementById('modalDesc');
     const modalPrice = document.getElementById('modalPrice');
     const modalQty = document.getElementById('modalQty');
+    const modalOrderType = document.getElementById('modalOrderType');
 
     function openModal(idx) {
         const item = items[idx];
@@ -168,6 +174,7 @@ if ($result && $result->num_rows > 0) {
         modalDesc.textContent = item.description;
         modalPrice.textContent = `${parseFloat(item.price).toFixed(2)}`;
         modalQty.value = 1;
+        modalOrderType.value = 'Pickup';
         modal.classList.remove('hidden');
     }
     function closeModal() {
@@ -179,12 +186,13 @@ if ($result && $result->num_rows > 0) {
         // AJAX order insert
         const itemName = modalTitle.textContent;
         const qty = parseInt(modalQty.value);
+        const orderType = modalOrderType.value;
         const priceText = modalPrice.textContent.replace(/[^\d.]/g, '');
         const price = parseFloat(priceText);
         fetch('../auth/insert_order.php', {
             method: 'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: `item_name=${encodeURIComponent(itemName)}&quantity=${qty}&price=${price}`
+            body: `item_name=${encodeURIComponent(itemName)}&quantity=${qty}&order_type=${encodeURIComponent(orderType)}&price=${price}`
         })
         .then(res => res.json())
         .then(data => {

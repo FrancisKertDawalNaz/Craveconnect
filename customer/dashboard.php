@@ -41,11 +41,14 @@ if ($pointsResult && $row = $pointsResult->fetch_assoc()) {
     $points = $row['points'];
 }
 
-// Fetch available rewards for this user
+// Fetch available rewards for this user from promotions table
 $availableRewards = 0;
-if ($points >= 2000) $availableRewards++;
-if ($points >= 1000) $availableRewards++;
-if ($points >= 500) $availableRewards++;
+$today = date('Y-m-d');
+$sql = "SELECT COUNT(*) as cnt FROM promotions WHERE status = 'active' AND start_date <= '$today' AND end_date >= '$today'";
+$res = $conn->query($sql);
+if ($res && $row = $res->fetch_assoc()) {
+    $availableRewards = (int)$row['cnt'];
+}
 ?>
 
 <!DOCTYPE html>
