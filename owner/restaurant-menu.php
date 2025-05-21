@@ -4,8 +4,13 @@ session_start();
 // Database connection
 include_once __DIR__ . '/auth/connection.php';
 
+$selected_category = isset($_GET['category']) ? $_GET['category'] : '';
 $menu_items = [];
-$sql = "SELECT * FROM menu_items ORDER BY id DESC";
+if ($selected_category && $selected_category !== 'All') {
+    $sql = "SELECT * FROM menu_items WHERE category = '" . mysqli_real_escape_string($conn, $selected_category) . "' ORDER BY id DESC";
+} else {
+    $sql = "SELECT * FROM menu_items ORDER BY id DESC";
+}
 $result = mysqli_query($conn, $sql);
 if ($result && mysqli_num_rows($result) > 0) {
     while ($row = mysqli_fetch_assoc($result)) {
@@ -114,7 +119,12 @@ if (isset($_SESSION['menu_item_added']) && $_SESSION['menu_item_added']) {
                 <!-- Categories -->
                 <div class="mb-6">
                     <div class="flex space-x-4 overflow-x-auto pb-2">
-                        <button class="px-4 py-2 bg-primary text-white rounded-lg">All Items</button>
+                        <a href="?category=All" class="px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent <?php echo !$selected_category || $selected_category === 'All' ? 'bg-primary text-white' : 'bg-white text-gray-700 hover:bg-gray-50'; ?>">All Menu</a>
+                        <a href="?category=Lomi" class="px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent <?php echo $selected_category === 'Lomi' ? 'bg-primary text-white' : 'bg-white text-gray-700 hover:bg-gray-50'; ?>">Lomi</a>
+                        <a href="?category=Silog Meal" class="px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent <?php echo $selected_category === 'Silog Meal' ? 'bg-primary text-white' : 'bg-white text-gray-700 hover:bg-gray-50'; ?>">Silog Meal</a>
+                        <a href="?category=Lutong Ulam" class="px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent <?php echo $selected_category === 'Lutong Ulam' ? 'bg-primary text-white' : 'bg-white text-gray-700 hover:bg-gray-50'; ?>">Lutong Ulam</a>
+                        <a href="?category=Lugaw" class="px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent <?php echo $selected_category === 'Lugaw' ? 'bg-primary text-white' : 'bg-white text-gray-700 hover:bg-gray-50'; ?>">Lugaw</a>
+                        <a href="?category=Short Order" class="px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent <?php echo $selected_category === 'Short Order' ? 'bg-primary text-white' : 'bg-white text-gray-700 hover:bg-gray-50'; ?>">Short Order</a>
                     </div>
                 </div>
 
@@ -185,19 +195,19 @@ if (isset($_SESSION['menu_item_added']) && $_SESSION['menu_item_added']) {
                             <select name="category" required
                                 class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent">
                                 <option value="">Select category</option>
-                                <option value="appetizers">Appetizers</option>
-                                <option value="main">Main Course</option>
-                                <option value="desserts">Desserts</option>
-                                <option value="beverages">Beverages</option>
+                                <option value="Lomi">Lomi</option>
+                                <option value="Silog Meal">Silog Meal</option>
+                                <option value="Lutong Ulam">Lutong Ulam</option>
+                                <option value="Lugaw">Lugaw</option>
+                                <option value="Short Order">Short Order</option>
                             </select>
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">Price</label>
                             <div class="relative">
-                                <span class="absolute left-4 top-2 text-gray-500">$</span>
-                                <input type="number" step="0.01" name="price" required
+                                <input type="number" name="price" required
                                     class="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-                                    placeholder="0.00">
+                                    placeholder="00">
                             </div>
                         </div>
                         <div>

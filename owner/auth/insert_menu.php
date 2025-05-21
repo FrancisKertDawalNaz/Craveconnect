@@ -49,6 +49,9 @@ if (isset($_FILES['image']) && $_FILES['image']['error'] == 0) {
     $image_path = $unique_name;
 }
 
+// Debug log
+file_put_contents(__DIR__ . '/debug_insert_menu.log', date('Y-m-d H:i:s') . " | item_name: $item_name | category: $category | price: $price | description: $description\n", FILE_APPEND);
+
 $sql = "INSERT INTO menu_items (item_name, category, description, price, image_url) VALUES (?, ?, ?, ?, ?)";
 $stmt = $conn->prepare($sql);
 if ($stmt === false) {
