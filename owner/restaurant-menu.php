@@ -308,7 +308,13 @@ if (isset($_SESSION['menu_item_added']) && $_SESSION['menu_item_added']) {
                     .then(res => res.json())
                     .then(data => {
                         if (data.success) {
-                            Swal.fire('Saved!', 'Menu item updated.', 'success').then(() => location.reload());
+                            const urlParams = new URLSearchParams(window.location.search);
+                            const currentCategory = urlParams.get('category');
+                            let reloadUrl = window.location.pathname;
+                            if (currentCategory) {
+                                reloadUrl += '?category=' + encodeURIComponent(currentCategory);
+                            }
+                            Swal.fire('Saved!', 'Menu item updated.', 'success').then(() => window.location.href = reloadUrl);
                         } else {
                             Swal.fire('Error', data.error || 'Failed to update menu item.', 'error');
                         }

@@ -255,16 +255,6 @@ if ($result) {
                                 <p class="text-sm text-gray-600 mb-4">
                                     <?php echo htmlspecialchars($review['comments']); ?>
                                 </p>
-                                <div class="flex items-center space-x-4">
-                                    <button class="text-primary hover:text-primary/80 text-sm font-medium">
-                                        <i class="fas fa-reply mr-1"></i>
-                                        Reply
-                                    </button>
-                                    <button class="text-gray-500 hover:text-gray-700 text-sm font-medium">
-                                        <i class="fas fa-flag mr-1"></i>
-                                        Flag
-                                    </button>
-                                </div>
                             </div>
                             <?php endforeach; ?>
                             <?php if (empty($recentReviews)): ?>
