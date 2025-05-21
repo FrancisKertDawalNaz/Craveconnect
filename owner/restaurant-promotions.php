@@ -265,27 +265,18 @@ if ($result) {
                                         <h4 class="text-sm font-medium text-gray-900">Points Earning</h4>
                                         <p class="text-sm text-gray-500">1 point per 1 spent</p>
                                     </div>
-                                    <button class="text-primary hover:text-primary/80">
-                                        <i class="fas fa-edit"></i>
-                                    </button>
                                 </div>
                                 <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
                                     <div>
                                         <h4 class="text-sm font-medium text-gray-900">Points Redemption</h4>
                                         <p class="text-sm text-gray-500">100 points = 5 discount</p>
                                     </div>
-                                    <button class="text-primary hover:text-primary/80">
-                                        <i class="fas fa-edit"></i>
-                                    </button>
                                 </div>
                                 <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
                                     <div>
                                         <h4 class="text-sm font-medium text-gray-900">Tier Benefits</h4>
                                         <p class="text-sm text-gray-500">Silver: 500 points, Gold: 1000 points</p>
                                     </div>
-                                    <button class="text-primary hover:text-primary/80">
-                                        <i class="fas fa-edit"></i>
-                                    </button>
                                 </div>
                             </div>
                         </div>

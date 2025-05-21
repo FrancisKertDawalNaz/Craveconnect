@@ -28,7 +28,7 @@ if (isset($_SESSION['user_id'])) {
 <body class="bg-gray-100 min-h-screen">
     <div class="flex min-h-screen">
         <div class="hidden lg:block lg:w-1/2 relative">
-            <img src="https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?ixlib=rb-4.0.3&auto=format&fit=crop&w=1470&q=80" 
+            <img src="./assets/images/owner.jpg" 
                  alt="Restaurant Interior" 
                  class="absolute inset-0 w-full h-full object-cover" />
             <div class="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center">

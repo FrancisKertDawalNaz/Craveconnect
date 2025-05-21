@@ -10,8 +10,13 @@ $userFullName = $_SESSION['fullname'];
 
 // Fetch menu items from DB
 require_once '../owner/auth/connection.php';
+$selected_category = isset($_GET['category']) ? $_GET['category'] : '';
 $menu_items = [];
-$sql = "SELECT * FROM menu_items ORDER BY id DESC";
+if ($selected_category && $selected_category !== 'All') {
+    $sql = "SELECT * FROM menu_items WHERE category = '" . $conn->real_escape_string($selected_category) . "' ORDER BY id DESC";
+} else {
+    $sql = "SELECT * FROM menu_items ORDER BY id DESC";
+}
 $result = $conn->query($sql);
 if ($result && $result->num_rows > 0) {
     while ($row = $result->fetch_assoc()) {
@@ -97,16 +102,31 @@ if ($result && $result->num_rows > 0) {
             </header>
 
             <main class="p-6">
+                <!-- Category Filter Buttons -->
+                <div class="mb-6">
+                    <div class="flex space-x-4 overflow-x-auto pb-2">
+                        <a href="?category=All" class="px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent <?php echo !$selected_category || $selected_category === 'All' ? 'bg-primary text-white' : 'bg-white text-gray-700 hover:bg-gray-50'; ?>">All Menu</a>
+                        <a href="?category=Lomi" class="px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent <?php echo $selected_category === 'Lomi' ? 'bg-primary text-white' : 'bg-white text-gray-700 hover:bg-gray-50'; ?>">Lomi</a>
+                        <a href="?category=Silog Meal" class="px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent <?php echo $selected_category === 'Silog Meal' ? 'bg-primary text-white' : 'bg-white text-gray-700 hover:bg-gray-50'; ?>">Silog Meal</a>
+                        <a href="?category=Lutong Ulam" class="px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent <?php echo $selected_category === 'Lutong Ulam' ? 'bg-primary text-white' : 'bg-white text-gray-700 hover:bg-gray-50'; ?>">Lutong Ulam</a>
+                        <a href="?category=Lugaw" class="px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent <?php echo $selected_category === 'Lugaw' ? 'bg-primary text-white' : 'bg-white text-gray-700 hover:bg-gray-50'; ?>">Lugaw</a>
+                        <a href="?category=Short Order" class="px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent <?php echo $selected_category === 'Short Order' ? 'bg-primary text-white' : 'bg-white text-gray-700 hover:bg-gray-50'; ?>">Short Order</a>
+                    </div>
+                </div>
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <?php foreach ($menu_items as $idx => $item): ?>
-                        <div class="bg-white rounded-lg shadow p-6">
-                            <img src="<?php echo '../owner/uploads/' . htmlspecialchars($item['image_url']); ?>" alt="<?php echo htmlspecialchars($item['item_name']); ?>" class="rounded mb-4 w-full h-40 object-cover">
-                            <h3 class="text-lg font-semibold mb-2"><?php echo htmlspecialchars($item['item_name']); ?></h3>
-                            <p class="text-gray-600 mb-2"><?php echo htmlspecialchars($item['description']); ?></p>
-                            <p class="text-primary font-bold"><?php echo number_format($item['price'], 2); ?></p>
-                            <button onclick="openModal(<?php echo $idx; ?>)" class="mt-2 w-full bg-primary text-white py-2 rounded hover:bg-red-700 transition">Add to Cart</button>
-                        </div>
-                    <?php endforeach; ?>
+                    <?php if (!empty($menu_items)): ?>
+                        <?php foreach ($menu_items as $idx => $item): ?>
+                            <div class="bg-white rounded-lg shadow p-6">
+                                <img src="<?php echo '../owner/uploads/' . htmlspecialchars($item['image_url']); ?>" alt="<?php echo htmlspecialchars($item['item_name']); ?>" class="rounded mb-4 w-full h-40 object-cover">
+                                <h3 class="text-lg font-semibold mb-2"><?php echo htmlspecialchars($item['item_name']); ?></h3>
+                                <p class="text-gray-600 mb-2"><?php echo htmlspecialchars($item['description']); ?></p>
+                                <p class="text-primary font-bold"><?php echo number_format($item['price'], 2); ?></p>
+                                <button onclick="openModal(<?php echo $idx; ?>)" class="mt-2 w-full bg-primary text-white py-2 rounded hover:bg-red-700 transition">Add to Cart</button>
+                            </div>
+                        <?php endforeach; ?>
+                    <?php else: ?>
+                        <div class="col-span-3 text-center text-gray-500">No menu items found.</div>
+                    <?php endif; ?>
                 </div>
             </main>
         </div>
